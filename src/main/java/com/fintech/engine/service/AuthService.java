@@ -1,20 +1,15 @@
 package com.fintech.engine.service;
 
-import com.fintech.engine.dto.AuthResponse;
-import com.fintech.engine.dto.LoginRequest;
-import com.fintech.engine.dto.RegisterRequest;
+import com.fintech.engine.dto.*;
 
 public interface AuthService {
-
-    /**
-     * Registers a new customer, hashes their password, automatically provisions their default wallet account,
-     * and returns a signed JWT access token.
-     */
     AuthResponse register(RegisterRequest request);
-
-    /**
-     * Authenticates customer credentials and issues a signed JWT access token.
-     */
     AuthResponse login(LoginRequest request);
+    OtpResponse forgotPassword(ForgotPasswordRequest request);
+    OtpResponse verifyOtp(VerifyOtpRequest request);
+    ApiResponseDto resetPassword(ResetPasswordRequest request);
+    OtpResponse resendOtp(ResendOtpRequest request);
+    ApiResponseDto changePassword(String userEmail, ChangePasswordRequest request);
+    AuthResponse refreshToken(RefreshTokenRequest request);
+    ApiResponseDto logout(RefreshTokenRequest request);
 }
-
