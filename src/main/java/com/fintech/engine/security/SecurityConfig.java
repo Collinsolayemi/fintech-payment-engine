@@ -39,7 +39,9 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints
+                        // Secured auth endpoint
+                        .requestMatchers("/api/v1/auth/change-password").authenticated()
+                        // Public auth & documentation endpoints
                         .requestMatchers(
                                 "/api/v1/auth/**",
                                 "/swagger-ui/**",
