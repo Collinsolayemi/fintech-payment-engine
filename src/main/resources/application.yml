@@ -39,3 +39,17 @@ logging:
     org.springframework.transaction: INFO
     org.hibernate.SQL: INFO
 
+fintech:
+  jwt:
+    secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+    expiration-ms: 86400000
+  webhooks:
+    stripe:
+      secret: ${STRIPE_WEBHOOK_SECRET:whsec_test_stripe_secret_key_12345}
+    paystack:
+      secret: ${PAYSTACK_WEBHOOK_SECRET:whsec_test_paystack_secret_key_12345}
+    flutterwave:
+      secret: ${FLUTTERWAVE_WEBHOOK_SECRET:whsec_test_flutterwave_secret_key_12345}
+  payouts:
+    flat-fee: 2.00
+
