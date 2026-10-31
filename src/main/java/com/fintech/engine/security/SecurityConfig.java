@@ -41,9 +41,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Secured auth endpoint
                         .requestMatchers("/api/v1/auth/change-password").authenticated()
-                        // Public auth & documentation endpoints
+                        // Public auth, webhooks & documentation endpoints
                         .requestMatchers(
                                 "/api/v1/auth/**",
+                                "/api/v1/webhooks/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**",
