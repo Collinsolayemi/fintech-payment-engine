@@ -43,9 +43,6 @@ class PayoutServiceTest {
     private UserRepository userRepository;
 
     @Mock
-    private AccountService accountService;
-
-    @Mock
     private LedgerService ledgerService;
 
     private PayoutServiceImpl payoutService;
@@ -68,7 +65,6 @@ class PayoutServiceTest {
                 payoutRepository,
                 accountRepository,
                 userRepository,
-                accountService,
                 ledgerService
         );
         ReflectionTestUtils.setField(payoutService, "flatPayoutFee", new BigDecimal("2.00"));
