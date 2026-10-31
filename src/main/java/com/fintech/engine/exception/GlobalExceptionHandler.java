@@ -65,6 +65,36 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(EmailAlreadyExistsException.class)
+    public ProblemDetail handleEmailAlreadyExists(EmailAlreadyExistsException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setTitle("Email Already Registered");
+        problem.setType(URI.create("https://api.fintech.example.com/errors/email-already-exists"));
+        problem.setProperty("code", ex.getErrorCode());
+        problem.setProperty("timestamp", OffsetDateTime.now());
+        return problem;
+    }
+
+    @ExceptionHandler(UnauthorizedAccountAccessException.class)
+    public ProblemDetail handleUnauthorizedAccountAccess(UnauthorizedAccountAccessException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+        problem.setTitle("Unauthorized Account Access");
+        problem.setType(URI.create("https://api.fintech.example.com/errors/unauthorized-account-access"));
+        problem.setProperty("code", ex.getErrorCode());
+        problem.setProperty("timestamp", OffsetDateTime.now());
+        return problem;
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ProblemDetail handleInvalidCredentials(InvalidCredentialsException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
+        problem.setTitle("Invalid Credentials");
+        problem.setType(URI.create("https://api.fintech.example.com/errors/invalid-credentials"));
+        problem.setProperty("code", ex.getErrorCode());
+        problem.setProperty("timestamp", OffsetDateTime.now());
+        return problem;
+    }
+
     @ExceptionHandler(IdempotencyConflictException.class)
     public ProblemDetail handleIdempotencyConflict(IdempotencyConflictException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
