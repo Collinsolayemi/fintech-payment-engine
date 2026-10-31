@@ -9,7 +9,9 @@ import com.fintech.engine.exception.CurrencyMismatchException;
 import com.fintech.engine.exception.InsufficientFundsException;
 import com.fintech.engine.exception.InvalidAmountException;
 import com.fintech.engine.exception.SelfTransferException;
+import com.fintech.engine.exception.UnauthorizedAccountAccessException;
 import com.fintech.engine.model.entity.Account;
+import com.fintech.engine.model.entity.User;
 import com.fintech.engine.model.enums.AccountStatus;
 import com.fintech.engine.model.enums.AccountType;
 import com.fintech.engine.model.enums.TransactionStatus;
@@ -53,6 +55,7 @@ class TransferServiceTest {
     private Account senderAccount;
     private Account recipientAccount;
     private Account feeRevenueAccount;
+    private User senderUser;
 
     @BeforeEach
     void setUp() {
@@ -61,7 +64,8 @@ class TransferServiceTest {
         senderId = UUID.fromString("11111111-1111-1111-1111-111111111111");
         recipientId = UUID.fromString("22222222-2222-2222-2222-222222222222");
 
-        senderAccount = new Account(null, "USD-1001", "Sender Wallet", AccountType.LIABILITY, "USD");
+        senderUser = new User("sender@example.com", "hashedPass", "Sender", "User");
+        senderAccount = new Account(senderUser, "USD-1001", "Sender Wallet", AccountType.LIABILITY, "USD");
         senderAccount.setId(senderId);
         senderAccount.setStatus(AccountStatus.ACTIVE);
 
@@ -75,7 +79,7 @@ class TransferServiceTest {
     }
 
     @Test
-    @DisplayName("Should successfully transfer funds when sender has sufficient balance")
+    @DisplayName("Should successfully transfer funds when sender has sufficient balance and owns the account")
     void shouldTransferFundsSuccessfully() {
         TransferRequest request = new TransferRequest(
                 senderId, recipientId, new BigDecimal("50.00"), BigDecimal.ZERO, "USD", "Dinner split"
@@ -93,7 +97,7 @@ class TransferServiceTest {
                 "Dinner split", OffsetDateTime.now(), OffsetDateTime.now(), Collections.emptyList()
         ));
 
-        TransferResponse response = transferService.transfer(request, "idem-001");
+        TransferResponse response = transferService.transfer(request, "idem-001", "sender@example.com");
 
         assertNotNull(response);
         assertEquals(TransactionStatus.COMPLETED, response.status());
@@ -101,6 +105,24 @@ class TransferServiceTest {
         assertEquals(BigDecimal.ZERO, response.fee());
         assertEquals(senderId, response.senderAccountId());
         assertEquals(recipientId, response.recipientAccountId());
+    }
+
+    @Test
+    @DisplayName("Should reject transfer when authenticated user does not own the sender account")
+    void shouldRejectTransferWhenUserDoesNotOwnSenderAccount() {
+        TransferRequest request = new TransferRequest(
+                senderId, recipientId, new BigDecimal("50.00"), BigDecimal.ZERO, "USD", "Malicious attempt"
+        );
+
+        when(accountRepository.findByIdForUpdate(senderId)).thenReturn(Optional.of(senderAccount));
+        when(accountRepository.findByIdForUpdate(recipientId)).thenReturn(Optional.of(recipientAccount));
+
+        UnauthorizedAccountAccessException ex = assertThrows(UnauthorizedAccountAccessException.class, () ->
+                transferService.transfer(request, "idem-unauth", "attacker@example.com")
+        );
+
+        assertEquals("UNAUTHORIZED_ACCOUNT_ACCESS", ex.getErrorCode());
+        verifyNoInteractions(ledgerService);
     }
 
     @Test
@@ -117,7 +139,6 @@ class TransferServiceTest {
         when(accountRepository.findByIdForUpdate(recipientId)).thenReturn(Optional.of(recipientAccount));
         when(accountRepository.findByAccountNumber("SYS-4001-USD")).thenReturn(Optional.of(feeRevenueAccount));
 
-        // Sender has $200
         when(ledgerService.getAccountBalance(senderId)).thenReturn(new AccountBalanceResponse(
                 senderId, "USD-1001", "Sender Wallet", AccountType.LIABILITY, "USD",
                 AccountStatus.ACTIVE, new BigDecimal("200.00"), BigDecimal.ZERO, new BigDecimal("200.00")
@@ -129,12 +150,11 @@ class TransferServiceTest {
                 "Transfer with fee", OffsetDateTime.now(), OffsetDateTime.now(), Collections.emptyList()
         ));
 
-        TransferResponse response = transferService.transfer(request, "idem-fee");
+        TransferResponse response = transferService.transfer(request, "idem-fee", "sender@example.com");
 
         assertNotNull(response);
         assertEquals(new BigDecimal("2.50"), response.fee());
 
-        // Verify the 3 entries: Sender Debit (102.50), Recipient Credit (100.00), Revenue Credit (2.50)
         LedgerPostingRequest captured = captor.getValue();
         assertEquals(3, captured.entries().size());
         assertEquals(new BigDecimal("102.50"), captured.entries().get(0).amount());
@@ -152,14 +172,13 @@ class TransferServiceTest {
         when(accountRepository.findByIdForUpdate(senderId)).thenReturn(Optional.of(senderAccount));
         when(accountRepository.findByIdForUpdate(recipientId)).thenReturn(Optional.of(recipientAccount));
 
-        // Sender only has $50.00
         when(ledgerService.getAccountBalance(senderId)).thenReturn(new AccountBalanceResponse(
                 senderId, "USD-1001", "Sender Wallet", AccountType.LIABILITY, "USD",
                 AccountStatus.ACTIVE, new BigDecimal("50.00"), BigDecimal.ZERO, new BigDecimal("50.00")
         ));
 
         InsufficientFundsException ex = assertThrows(InsufficientFundsException.class, () ->
-                transferService.transfer(request, "idem-fail")
+                transferService.transfer(request, "idem-fail", "sender@example.com")
         );
 
         assertEquals("INSUFFICIENT_FUNDS", ex.getErrorCode());
@@ -174,7 +193,7 @@ class TransferServiceTest {
         );
 
         SelfTransferException ex = assertThrows(SelfTransferException.class, () ->
-                transferService.transfer(request, "idem-self")
+                transferService.transfer(request, "idem-self", "sender@example.com")
         );
 
         assertEquals("SELF_TRANSFER_NOT_ALLOWED", ex.getErrorCode());
@@ -196,7 +215,7 @@ class TransferServiceTest {
         when(accountRepository.findByIdForUpdate(recipientId)).thenReturn(Optional.of(eurRecipient));
 
         CurrencyMismatchException ex = assertThrows(CurrencyMismatchException.class, () ->
-                transferService.transfer(request, "idem-currency")
+                transferService.transfer(request, "idem-currency", "sender@example.com")
         );
 
         assertEquals("CURRENCY_MISMATCH", ex.getErrorCode());
@@ -210,8 +229,7 @@ class TransferServiceTest {
         );
 
         assertThrows(InvalidAmountException.class, () ->
-                transferService.transfer(request, "idem-zero")
+                transferService.transfer(request, "idem-zero", "sender@example.com")
         );
     }
 }
-

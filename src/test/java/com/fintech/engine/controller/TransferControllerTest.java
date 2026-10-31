@@ -5,6 +5,7 @@ import com.fintech.engine.dto.TransferRequest;
 import com.fintech.engine.dto.TransferResponse;
 import com.fintech.engine.exception.GlobalExceptionHandler;
 import com.fintech.engine.exception.InsufficientFundsException;
+import com.fintech.engine.exception.UnauthorizedAccountAccessException;
 import com.fintech.engine.model.entity.IdempotencyRecord;
 import com.fintech.engine.model.enums.TransactionStatus;
 import com.fintech.engine.service.IdempotencyService;
@@ -12,6 +13,8 @@ import com.fintech.engine.service.TransferService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
@@ -30,7 +33,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(TransferController.class)
+@WebMvcTest(controllers = TransferController.class, excludeAutoConfiguration = {
+        SecurityAutoConfiguration.class,
+        SecurityFilterAutoConfiguration.class
+})
 @Import(GlobalExceptionHandler.class)
 class TransferControllerTest {
 
@@ -61,7 +67,7 @@ class TransferControllerTest {
         );
 
         when(idempotencyService.checkOrStart(eq("idem-uuid-1"), any())).thenReturn(Optional.empty());
-        when(transferService.transfer(any(TransferRequest.class), eq("idem-uuid-1"))).thenReturn(expectedResponse);
+        when(transferService.transfer(any(TransferRequest.class), eq("idem-uuid-1"), any())).thenReturn(expectedResponse);
 
         mockMvc.perform(post("/api/v1/transfers")
                         .header("Idempotency-Key", "idem-uuid-1")
@@ -104,8 +110,7 @@ class TransferControllerTest {
                 .andExpect(jsonPath("$.transactionReference").value("TX-CACHED-REF"))
                 .andExpect(jsonPath("$.status").value("COMPLETED"));
 
-        // Verify transfer service was NOT called again!
-        verify(transferService, never()).transfer(any(), any());
+        verify(transferService, never()).transfer(any(), any(), any());
     }
 
     @Test
@@ -118,7 +123,7 @@ class TransferControllerTest {
         );
 
         when(idempotencyService.checkOrStart(any(), any())).thenReturn(Optional.empty());
-        when(transferService.transfer(any(), any())).thenThrow(
+        when(transferService.transfer(any(), any(), any())).thenThrow(
                 new InsufficientFundsException(senderId, new BigDecimal("50.00"), new BigDecimal("500.00"))
         );
 
@@ -130,6 +135,28 @@ class TransferControllerTest {
                 .andExpect(jsonPath("$.code").value("INSUFFICIENT_FUNDS"));
 
         verify(idempotencyService).fail("idem-fail");
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/transfers - Should return 403 Forbidden when user does not own sender account")
+    void shouldReturn403OnUnauthorizedAccountAccess() throws Exception {
+        UUID senderId = UUID.randomUUID();
+        UUID recipientId = UUID.randomUUID();
+        TransferRequest request = new TransferRequest(
+                senderId, recipientId, new BigDecimal("50.00"), BigDecimal.ZERO, "USD", "Hack attempt"
+        );
+
+        when(idempotencyService.checkOrStart(any(), any())).thenReturn(Optional.empty());
+        when(transferService.transfer(any(), any(), any())).thenThrow(
+                new UnauthorizedAccountAccessException(senderId, "attacker@example.com")
+        );
+
+        mockMvc.perform(post("/api/v1/transfers")
+                        .header("Idempotency-Key", "idem-unauth")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED_ACCOUNT_ACCESS"));
     }
 
     @Test
@@ -147,4 +174,3 @@ class TransferControllerTest {
                 .andExpect(jsonPath("$.transactionReference").value("TX-REF-100"));
     }
 }
-
