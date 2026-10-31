@@ -13,7 +13,6 @@ import com.fintech.engine.model.enums.PayoutStatus;
 import com.fintech.engine.repository.AccountRepository;
 import com.fintech.engine.repository.PayoutRepository;
 import com.fintech.engine.repository.UserRepository;
-import com.fintech.engine.service.AccountService;
 import com.fintech.engine.service.LedgerService;
 import com.fintech.engine.service.PayoutService;
 import org.slf4j.Logger;
@@ -39,7 +38,6 @@ public class PayoutServiceImpl implements PayoutService {
     private final PayoutRepository payoutRepository;
     private final AccountRepository accountRepository;
     private final UserRepository userRepository;
-    private final AccountService accountService;
     private final LedgerService ledgerService;
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -50,13 +48,11 @@ public class PayoutServiceImpl implements PayoutService {
         PayoutRepository payoutRepository,
         AccountRepository accountRepository,
         UserRepository userRepository,
-        AccountService accountService,
         LedgerService ledgerService
     ) {
         this.payoutRepository = payoutRepository;
         this.accountRepository = accountRepository;
         this.userRepository = userRepository;
-        this.accountService = accountService;
         this.ledgerService = ledgerService;
     }
 
