@@ -46,6 +46,9 @@ class TransferServiceTest {
     private TransactionRepository transactionRepository;
 
     @Mock
+    private com.fintech.engine.repository.LedgerEntryRepository ledgerEntryRepository;
+
+    @Mock
     private LedgerService ledgerService;
 
     private TransferServiceImpl transferService;
@@ -59,7 +62,7 @@ class TransferServiceTest {
 
     @BeforeEach
     void setUp() {
-        transferService = new TransferServiceImpl(accountRepository, transactionRepository, ledgerService);
+        transferService = new TransferServiceImpl(accountRepository, transactionRepository, ledgerEntryRepository, ledgerService);
 
         senderId = UUID.fromString("11111111-1111-1111-1111-111111111111");
         recipientId = UUID.fromString("22222222-2222-2222-2222-222222222222");
