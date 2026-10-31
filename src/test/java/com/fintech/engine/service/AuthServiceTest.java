@@ -7,7 +7,6 @@ import com.fintech.engine.model.entity.RefreshToken;
 import com.fintech.engine.model.entity.User;
 import com.fintech.engine.model.enums.AccountStatus;
 import com.fintech.engine.model.enums.AccountType;
-import com.fintech.engine.model.enums.OtpPurpose;
 import com.fintech.engine.repository.UserRepository;
 import com.fintech.engine.security.JwtService;
 import com.fintech.engine.service.impl.AuthServiceImpl;
