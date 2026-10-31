@@ -3,10 +3,12 @@ package com.fintech.engine.service.impl;
 import com.fintech.engine.dto.*;
 import com.fintech.engine.exception.*;
 import com.fintech.engine.model.entity.Account;
+import com.fintech.engine.model.entity.LedgerEntry;
 import com.fintech.engine.model.entity.Transaction;
 import com.fintech.engine.model.enums.AccountStatus;
 import com.fintech.engine.model.enums.EntryType;
 import com.fintech.engine.repository.AccountRepository;
+import com.fintech.engine.repository.LedgerEntryRepository;
 import com.fintech.engine.repository.TransactionRepository;
 import com.fintech.engine.service.LedgerService;
 import com.fintech.engine.service.TransferService;
@@ -31,14 +33,17 @@ public class TransferServiceImpl implements TransferService {
 
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
+    private final LedgerEntryRepository ledgerEntryRepository;
     private final LedgerService ledgerService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public TransferServiceImpl(AccountRepository accountRepository,
                                TransactionRepository transactionRepository,
+                               LedgerEntryRepository ledgerEntryRepository,
                                LedgerService ledgerService) {
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
+        this.ledgerEntryRepository = ledgerEntryRepository;
         this.ledgerService = ledgerService;
     }
 
@@ -157,15 +162,39 @@ public class TransferServiceImpl implements TransferService {
         Transaction tx = transactionRepository.findByReference(reference)
                 .orElseThrow(() -> new IllegalArgumentException("Transaction not found for reference: " + reference));
 
+        List<LedgerEntry> entries = ledgerEntryRepository.findByTransactionId(tx.getId());
+
+        UUID senderAccountId = null;
+        UUID recipientAccountId = null;
+        BigDecimal transferAmount = BigDecimal.ZERO;
+        BigDecimal fee = BigDecimal.ZERO;
+        String currency = "USD";
+
+        for (LedgerEntry entry : entries) {
+            if (entry.getEntryType() == EntryType.DEBIT) {
+                senderAccountId = entry.getAccount().getId();
+                currency = entry.getAccount().getCurrency();
+            } else if (entry.getEntryType() == EntryType.CREDIT) {
+                String accNum = entry.getAccount().getAccountNumber();
+                if (accNum != null && accNum.startsWith("SYS-4001")) {
+                    fee = entry.getAmount();
+                } else {
+                    recipientAccountId = entry.getAccount().getId();
+                    transferAmount = entry.getAmount();
+                    currency = entry.getAccount().getCurrency();
+                }
+            }
+        }
+
         return new TransferResponse(
                 tx.getReference(),
                 tx.getIdempotencyKey(),
                 tx.getStatus(),
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
-                "USD",
-                null,
-                null,
+                transferAmount,
+                fee,
+                currency,
+                senderAccountId,
+                recipientAccountId,
                 tx.getDescription(),
                 tx.getCompletedAt()
         );
