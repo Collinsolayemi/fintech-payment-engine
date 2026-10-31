@@ -4,6 +4,7 @@ import com.fintech.engine.dto.*;
 import com.fintech.engine.exception.InvalidAmountException;
 import com.fintech.engine.exception.UnbalancedLedgerException;
 import com.fintech.engine.model.entity.Account;
+import com.fintech.engine.model.entity.LedgerEntry;
 import com.fintech.engine.model.entity.Transaction;
 import com.fintech.engine.model.enums.AccountStatus;
 import com.fintech.engine.model.enums.AccountType;
@@ -82,6 +83,7 @@ class LedgerServiceTest {
         when(accountRepository.findByIdForUpdate(userWalletId)).thenReturn(Optional.of(userWallet));
         when(accountRepository.findByIdForUpdate(gatewayAssetId)).thenReturn(Optional.of(gatewayAsset));
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(ledgerEntryRepository.save(any(LedgerEntry.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
         TransactionResponse response = ledgerService.postTransaction(request);
