@@ -1,14 +1,13 @@
 package com.fintech.engine.service;
 
-import com.fintech.engine.dto.AccountBalanceResponse;
-import com.fintech.engine.dto.AuthResponse;
-import com.fintech.engine.dto.LoginRequest;
-import com.fintech.engine.dto.RegisterRequest;
+import com.fintech.engine.dto.*;
 import com.fintech.engine.exception.EmailAlreadyExistsException;
 import com.fintech.engine.exception.InvalidCredentialsException;
+import com.fintech.engine.model.entity.RefreshToken;
 import com.fintech.engine.model.entity.User;
 import com.fintech.engine.model.enums.AccountStatus;
 import com.fintech.engine.model.enums.AccountType;
+import com.fintech.engine.model.enums.OtpPurpose;
 import com.fintech.engine.repository.UserRepository;
 import com.fintech.engine.security.JwtService;
 import com.fintech.engine.service.impl.AuthServiceImpl;
@@ -23,12 +22,14 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -49,15 +50,29 @@ class AuthServiceTest {
     @Mock
     private AccountService accountService;
 
+    @Mock
+    private OtpService otpService;
+
+    @Mock
+    private RefreshTokenService refreshTokenService;
+
     private AuthServiceImpl authService;
 
     @BeforeEach
     void setUp() {
-        authService = new AuthServiceImpl(userRepository, passwordEncoder, jwtService, authenticationManager, accountService);
+        authService = new AuthServiceImpl(
+            userRepository,
+            passwordEncoder,
+            jwtService,
+            authenticationManager,
+            accountService,
+            otpService,
+            refreshTokenService
+        );
     }
 
     @Test
-    @DisplayName("Should successfully register user and automatically provision their default wallet")
+    @DisplayName("Should successfully register user, auto-provision wallet, and return access + refresh tokens")
     void shouldRegisterUserAndAutoProvisionWallet() {
         RegisterRequest request = new RegisterRequest(
                 "jane@example.com", "Password123!", "Jane", "Doe", "USD"
@@ -81,16 +96,21 @@ class AuthServiceTest {
         when(jwtService.generateToken(eq("jane@example.com"), eq("ROLE_USER"), eq(userId))).thenReturn("jwt-token-123");
         when(jwtService.getExpirationMillis()).thenReturn(86400000L);
 
+        RefreshToken refreshToken = new RefreshToken(savedUser, "sample-refresh-token", OffsetDateTime.now().plusDays(7));
+        when(refreshTokenService.createRefreshToken(savedUser)).thenReturn(refreshToken);
+
         AuthResponse response = authService.register(request);
 
         assertNotNull(response);
         assertEquals("Bearer", response.tokenType());
         assertEquals("jwt-token-123", response.accessToken());
+        assertEquals("sample-refresh-token", response.refreshToken());
         assertEquals("jane@example.com", response.email());
         assertEquals(walletId, response.defaultAccountId());
         assertEquals("USD-11223344", response.defaultAccountNumber());
 
         verify(accountService).createAccount(any());
+        verify(refreshTokenService).createRefreshToken(savedUser);
     }
 
     @Test
@@ -127,10 +147,14 @@ class AuthServiceTest {
         when(jwtService.generateToken(eq("jane@example.com"), eq("ROLE_USER"), eq(userId))).thenReturn("jwt-token-456");
         when(jwtService.getExpirationMillis()).thenReturn(86400000L);
 
+        RefreshToken refreshToken = new RefreshToken(user, "login-refresh-token", OffsetDateTime.now().plusDays(7));
+        when(refreshTokenService.createRefreshToken(user)).thenReturn(refreshToken);
+
         AuthResponse response = authService.login(request);
 
         assertNotNull(response);
         assertEquals("jwt-token-456", response.accessToken());
+        assertEquals("login-refresh-token", response.refreshToken());
         assertEquals(walletId, response.defaultAccountId());
     }
 
@@ -143,5 +167,24 @@ class AuthServiceTest {
 
         assertThrows(InvalidCredentialsException.class, () -> authService.login(request));
     }
-}
 
+    @Test
+    @DisplayName("Should reset password with valid token and revoke active sessions")
+    void shouldResetPasswordAndRevokeSessions() {
+        ResetPasswordRequest request = new ResetPasswordRequest("jane@example.com", "token-uuid-123", "NewSecretPass!");
+        User user = new User("jane@example.com", "oldHash", "Jane", "Doe");
+        UUID userId = UUID.randomUUID();
+        user.setId(userId);
+
+        when(userRepository.findByEmail("jane@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.encode("NewSecretPass!")).thenReturn("newHash");
+
+        ApiResponseDto response = authService.resetPassword(request);
+
+        assertTrue(response.success());
+        verify(otpService).consumeResetToken("jane@example.com", "token-uuid-123");
+        verify(refreshTokenService).revokeAllUserTokens(userId);
+        verify(userRepository).save(user);
+        assertEquals("newHash", user.getPasswordHash());
+    }
+}
