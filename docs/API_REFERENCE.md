@@ -6,10 +6,12 @@ All mutating endpoints require an `Idempotency-Key` header with a valid UUIDv4.
 
 ---
 
-## 1. Authentication Endpoints
+## 1. Authentication & Security Endpoints
 
-### Register User
+### Register Customer
 `POST /api/v1/auth/register`
+
+Creates customer credentials, hashes password with BCrypt, automatically provisions their default wallet account, and returns both JWT access token and refresh token.
 
 #### Request:
 ```json
@@ -25,10 +27,15 @@ All mutating endpoints require an `Idempotency-Key` header with a valid UUIDv4.
 #### Response: `201 Created`
 ```json
 {
+  "tokenType": "Bearer",
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "7c4a1234-abcd-ef01-2345-6789abcdef01",
+  "expiresInSeconds": 86400,
   "userId": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
   "email": "user@example.com",
-  "kycTier": 1,
-  "createdAt": "2026-10-31T15:30:00Z"
+  "role": "ROLE_USER",
+  "defaultAccountId": "a3b9f42b-5861-4685-b9f4-2c6d48259b12",
+  "defaultAccountNumber": "USD-11223344"
 }
 ```
 
@@ -36,6 +43,8 @@ All mutating endpoints require an `Idempotency-Key` header with a valid UUIDv4.
 
 ### Authenticate (Login)
 `POST /api/v1/auth/login`
+
+Authenticates credentials and issues signed JWT Bearer token + refresh token.
 
 #### Request:
 ```json
@@ -50,8 +59,190 @@ All mutating endpoints require an `Idempotency-Key` header with a valid UUIDv4.
 {
   "tokenType": "Bearer",
   "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "expiresIn": 3600,
-  "refreshToken": "d8e3b5e4-23a5-4422-951c-bf5e2b0d7b3d"
+  "refreshToken": "7c4a1234-abcd-ef01-2345-6789abcdef01",
+  "expiresInSeconds": 86400,
+  "userId": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+  "email": "user@example.com",
+  "role": "ROLE_USER",
+  "defaultAccountId": "a3b9f42b-5861-4685-b9f4-2c6d48259b12",
+  "defaultAccountNumber": "USD-11223344"
+}
+```
+
+---
+
+### Forgot Password (Request OTP)
+`POST /api/v1/auth/forgot-password`
+
+Dispatches a secure 6-digit numeric OTP to the user's email with a 60-second cooldown and 10-minute expiry.
+
+#### Request:
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+#### Response: `200 OK`
+```json
+{
+  "message": "OTP verification code sent successfully to user@example.com",
+  "email": "user@example.com",
+  "purpose": "FORGOT_PASSWORD",
+  "expiresInSeconds": 600
+}
+```
+
+---
+
+### Verify OTP
+`POST /api/v1/auth/verify-otp`
+
+Validates the OTP code using constant-time comparison, limits attempts to 5 max, and returns a verified reset token.
+
+#### Request:
+```json
+{
+  "email": "user@example.com",
+  "otpCode": "481920",
+  "purpose": "FORGOT_PASSWORD"
+}
+```
+
+#### Response: `200 OK`
+```json
+{
+  "message": "OTP verified successfully",
+  "email": "user@example.com",
+  "purpose": "FORGOT_PASSWORD",
+  "expiresInSeconds": 0,
+  "resetToken": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+}
+```
+
+---
+
+### Reset Password
+`POST /api/v1/auth/reset-password`
+
+Consumes the verified reset token, updates password hash, and terminates all active sessions across devices.
+
+#### Request:
+```json
+{
+  "email": "user@example.com",
+  "resetToken": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "newPassword": "NewSecurePassword456!"
+}
+```
+
+#### Response: `200 OK`
+```json
+{
+  "success": true,
+  "message": "Password has been reset successfully. Please log in with your new password."
+}
+```
+
+---
+
+### Resend OTP
+`POST /api/v1/auth/resend-otp`
+
+Dispatches a fresh OTP code respecting rate limiting cooldown.
+
+#### Request:
+```json
+{
+  "email": "user@example.com",
+  "purpose": "FORGOT_PASSWORD"
+}
+```
+
+#### Response: `200 OK`
+```json
+{
+  "message": "OTP verification code sent successfully to user@example.com",
+  "email": "user@example.com",
+  "purpose": "FORGOT_PASSWORD",
+  "expiresInSeconds": 600
+}
+```
+
+---
+
+### Change Password
+`POST /api/v1/auth/change-password`
+
+Authenticated endpoint for password rotation. Verifies current password and invalidates other sessions.
+
+#### Headers:
+- `Authorization: Bearer <JWT>`
+
+#### Request:
+```json
+{
+  "currentPassword": "CurrentPassword123!",
+  "newPassword": "BrandNewPassword789!"
+}
+```
+
+#### Response: `200 OK`
+```json
+{
+  "success": true,
+  "message": "Password changed successfully. Existing sessions have been revoked."
+}
+```
+
+---
+
+### Refresh Access Token (Token Rotation)
+`POST /api/v1/auth/refresh-token`
+
+Rotates the refresh token (revoking the used token) and issues a fresh JWT access token.
+
+#### Request:
+```json
+{
+  "refreshToken": "7c4a1234-abcd-ef01-2345-6789abcdef01"
+}
+```
+
+#### Response: `200 OK`
+```json
+{
+  "tokenType": "Bearer",
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "9e12abcd-0123-4567-89ab-cdef01234567",
+  "expiresInSeconds": 86400,
+  "userId": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+  "email": "user@example.com",
+  "role": "ROLE_USER",
+  "defaultAccountId": "a3b9f42b-5861-4685-b9f4-2c6d48259b12",
+  "defaultAccountNumber": "USD-11223344"
+}
+```
+
+---
+
+### Logout
+`POST /api/v1/auth/logout`
+
+Revokes the refresh token and terminates the user session.
+
+#### Request:
+```json
+{
+  "refreshToken": "9e12abcd-0123-4567-89ab-cdef01234567"
+}
+```
+
+#### Response: `200 OK`
+```json
+{
+  "success": true,
+  "message": "Logged out successfully"
 }
 ```
 
