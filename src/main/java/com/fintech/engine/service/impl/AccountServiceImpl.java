@@ -68,3 +68,4 @@ public class AccountServiceImpl implements AccountService {
         return String.format("%s-%08d", currency.toUpperCase(), randomDigits);
     }
 }
+

@@ -9,3 +9,4 @@ public class InsufficientFundsException extends FintechException {
                 accountId, available.toPlainString(), requested.toPlainString()), "INSUFFICIENT_FUNDS");
     }
 }
+

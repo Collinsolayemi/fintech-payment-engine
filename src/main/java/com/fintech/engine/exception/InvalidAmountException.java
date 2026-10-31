@@ -8,3 +8,4 @@ public class InvalidAmountException extends FintechException {
                 (amount != null ? amount.toPlainString() : "null"), "INVALID_AMOUNT");
     }
 }
+

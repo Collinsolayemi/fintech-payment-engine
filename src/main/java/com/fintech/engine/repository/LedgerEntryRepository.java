@@ -26,3 +26,4 @@ public interface LedgerEntryRepository extends JpaRepository<LedgerEntry, Long> 
     @Query("SELECT COALESCE(SUM(le.amount), 0) FROM LedgerEntry le WHERE le.entryType = :entryType")
     BigDecimal sumTotalByEntryType(@Param("entryType") EntryType entryType);
 }
+

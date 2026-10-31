@@ -12,3 +12,4 @@ public abstract class FintechException extends RuntimeException {
         return errorCode;
     }
 }
+

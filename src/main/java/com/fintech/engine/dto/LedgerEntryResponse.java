@@ -13,3 +13,4 @@ public record LedgerEntryResponse(
     BigDecimal amount,
     OffsetDateTime createdAt
 ) {}
+

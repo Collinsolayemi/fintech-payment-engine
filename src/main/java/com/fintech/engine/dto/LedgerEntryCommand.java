@@ -17,3 +17,4 @@ public record LedgerEntryCommand(
     @DecimalMin(value = "0.0001", message = "Amount must be greater than zero")
     BigDecimal amount
 ) {}
+

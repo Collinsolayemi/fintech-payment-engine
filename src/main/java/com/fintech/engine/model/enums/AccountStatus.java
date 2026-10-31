@@ -5,3 +5,4 @@ public enum AccountStatus {
     FROZEN,
     CLOSED
 }
+

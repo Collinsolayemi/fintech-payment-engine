@@ -8,3 +8,4 @@ public class UnbalancedLedgerException extends FintechException {
                 totalDebits.toPlainString(), totalCredits.toPlainString()), "UNBALANCED_LEDGER");
     }
 }
+

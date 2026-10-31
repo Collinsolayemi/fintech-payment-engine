@@ -19,3 +19,4 @@ public record LedgerPostingRequest(
     @Valid
     List<LedgerEntryCommand> entries
 ) {}
+

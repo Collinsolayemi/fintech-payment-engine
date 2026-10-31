@@ -37,3 +37,4 @@ public class AccountController {
         return ResponseEntity.ok(accountService.getUserAccounts(userId));
     }
 }
+

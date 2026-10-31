@@ -28,3 +28,4 @@ public interface LedgerService {
      */
     boolean verifyGlobalIntegrity();
 }
+

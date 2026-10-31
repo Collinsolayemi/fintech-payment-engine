@@ -11,3 +11,4 @@ import java.util.Optional;
 public interface IdempotencyRecordRepository extends JpaRepository<IdempotencyRecord, String> {
     Optional<IdempotencyRecord> findByKeyAndExpiresAtAfter(String key, OffsetDateTime now);
 }
+

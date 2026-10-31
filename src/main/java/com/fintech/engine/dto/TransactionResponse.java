@@ -15,3 +15,4 @@ public record TransactionResponse(
     OffsetDateTime completedAt,
     List<LedgerEntryResponse> entries
 ) {}
+

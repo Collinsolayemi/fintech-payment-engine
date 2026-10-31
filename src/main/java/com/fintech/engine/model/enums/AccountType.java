@@ -16,3 +16,4 @@ public enum AccountType {
         return this == ASSET || this == EXPENSE;
     }
 }
+

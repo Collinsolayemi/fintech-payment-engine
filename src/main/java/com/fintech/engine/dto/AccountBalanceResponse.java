@@ -16,3 +16,4 @@ public record AccountBalanceResponse(
     BigDecimal totalDebits,
     BigDecimal totalCredits
 ) {}
+

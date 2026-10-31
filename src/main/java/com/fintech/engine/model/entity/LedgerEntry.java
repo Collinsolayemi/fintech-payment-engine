@@ -53,3 +53,4 @@ public class LedgerEntry {
     public BigDecimal getAmount() { return amount; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
 }
+

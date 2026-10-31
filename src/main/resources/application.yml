@@ -38,3 +38,4 @@ logging:
     com.fintech: DEBUG
     org.springframework.transaction: INFO
     org.hibernate.SQL: INFO
+

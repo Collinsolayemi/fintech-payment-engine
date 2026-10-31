@@ -170,3 +170,4 @@ class LedgerServiceTest {
         assertEquals(new BigDecimal("400.00"), balanceResponse.balance());
     }
 }
+

@@ -11,3 +11,4 @@ public class AccountNotFoundException extends FintechException {
         super("Account not found with account number: " + accountNumber, "ACCOUNT_NOT_FOUND");
     }
 }
+

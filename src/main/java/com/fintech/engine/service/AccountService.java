@@ -11,3 +11,4 @@ public interface AccountService {
     AccountBalanceResponse getAccount(UUID accountId);
     List<AccountBalanceResponse> getUserAccounts(UUID userId);
 }
+
