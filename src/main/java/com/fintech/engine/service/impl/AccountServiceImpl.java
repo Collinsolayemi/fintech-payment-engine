@@ -2,7 +2,6 @@ package com.fintech.engine.service.impl;
 
 import com.fintech.engine.dto.AccountBalanceResponse;
 import com.fintech.engine.dto.CreateAccountRequest;
-import com.fintech.engine.exception.AccountNotFoundException;
 import com.fintech.engine.model.entity.Account;
 import com.fintech.engine.model.entity.User;
 import com.fintech.engine.repository.AccountRepository;
