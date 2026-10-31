@@ -155,6 +155,36 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(InvalidWebhookSignatureException.class)
+    public ProblemDetail handleInvalidWebhookSignature(InvalidWebhookSignatureException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
+        problem.setTitle("Invalid Webhook Signature");
+        problem.setType(URI.create("https://api.fintech.example.com/errors/invalid-webhook-signature"));
+        problem.setProperty("code", ex.getErrorCode());
+        problem.setProperty("timestamp", OffsetDateTime.now());
+        return problem;
+    }
+
+    @ExceptionHandler(PayoutNotFoundException.class)
+    public ProblemDetail handlePayoutNotFound(PayoutNotFoundException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        problem.setTitle("Payout Not Found");
+        problem.setType(URI.create("https://api.fintech.example.com/errors/payout-not-found"));
+        problem.setProperty("code", ex.getErrorCode());
+        problem.setProperty("timestamp", OffsetDateTime.now());
+        return problem;
+    }
+
+    @ExceptionHandler(IllegalPayoutStateException.class)
+    public ProblemDetail handleIllegalPayoutState(IllegalPayoutStateException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        problem.setTitle("Illegal Payout State");
+        problem.setType(URI.create("https://api.fintech.example.com/errors/illegal-payout-state"));
+        problem.setProperty("code", ex.getErrorCode());
+        problem.setProperty("timestamp", OffsetDateTime.now());
+        return problem;
+    }
+
     @ExceptionHandler(IdempotencyConflictException.class)
     public ProblemDetail handleIdempotencyConflict(IdempotencyConflictException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
