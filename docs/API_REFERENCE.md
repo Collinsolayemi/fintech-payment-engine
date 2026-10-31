@@ -342,26 +342,25 @@ Revokes the refresh token and terminates the user session.
 ## 4. Payment Gateway Webhook Endpoints
 
 ### Ingest Inbound Payment Webhook
-`POST /api/v1/webhooks/stripe`
+`POST /api/v1/webhooks/{provider}`
+
+Cryptographically verifies inbound webhook notifications (e.g. Stripe, Paystack, Flutterwave) via HMAC-SHA256, prevents replay attacks via event de-duplication, and auto-credits the destination customer wallet via balanced double-entry ledger entries.
+
+#### Path Parameters:
+- `provider`: `STRIPE`, `PAYSTACK`, or `FLUTTERWAVE`
 
 #### Headers:
-- `Stripe-Signature: t=1614552222,v1=5257a869e7ecebeda32affa62cd49f...`
+- `X-Signature` or `Stripe-Signature`: HMAC-SHA256 signature hash
 
 #### Request Body:
 ```json
 {
-  "id": "evt_1MvBEw2eZvKYlo2C0VXYZABC",
-  "type": "payment_intent.succeeded",
+  "id": "evt_3N4abc123456789",
+  "type": "payment.succeeded",
   "data": {
-    "object": {
-      "id": "pi_3MvBEw2eZvKYlo2C0XYZABC",
-      "amount": 10000,
-      "currency": "usd",
-      "metadata": {
-        "userId": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
-        "accountId": "a3b9f42b-5861-4685-b9f4-2c6d48259b12"
-      }
-    }
+    "amount": "250.00",
+    "currency": "USD",
+    "customer_email": "customer@example.com"
   }
 }
 ```
@@ -369,13 +368,108 @@ Revokes the refresh token and terminates the user session.
 #### Response: `200 OK`
 ```json
 {
-  "received": true
+  "success": true,
+  "message": "Payment webhook processed and funds credited",
+  "eventId": "evt_3N4abc123456789",
+  "status": "PROCESSED"
 }
 ```
 
 ---
 
-## 5. Standard Error Format (RFC 7807 Problem Details)
+## 5. Outbound Payout (Withdrawal) Endpoints
+
+### Initiate Payout (Phase 1 Escrow Lock)
+`POST /api/v1/payouts`
+
+Debits user available balance, moves funds into platform pending escrow (`SYS-2002-USD`), debits fee (`SYS-4001-USD`), and issues a payout reference.
+
+#### Headers:
+- `Authorization: Bearer <JWT>`
+- `Idempotency-Key: <UUIDv4>` (Optional, recommended)
+
+#### Request:
+```json
+{
+  "accountId": "a3b9f42b-5861-4685-b9f4-2c6d48259b12",
+  "amount": 100.00,
+  "currency": "USD",
+  "destinationBankCode": "044",
+  "destinationAccountNumber": "0123456789",
+  "destinationAccountName": "Alex Morgan",
+  "description": "Withdrawal to Chase checking"
+}
+```
+
+#### Response: `200 OK`
+```json
+{
+  "id": "b18a8b1b-21a4-4df1-863a-bc49048a1234",
+  "reference": "PO-20261031-102938",
+  "accountId": "a3b9f42b-5861-4685-b9f4-2c6d48259b12",
+  "accountNumber": "USD-11223344",
+  "amount": 100.0000,
+  "fee": 2.0000,
+  "currency": "USD",
+  "status": "PROCESSING",
+  "destinationBankCode": "044",
+  "destinationAccountNumber": "0123456789",
+  "destinationAccountName": "Alex Morgan",
+  "failureReason": null,
+  "createdAt": "2026-10-31T22:15:00Z",
+  "updatedAt": "2026-10-31T22:15:00Z"
+}
+```
+
+---
+
+### Get Payout Details
+`GET /api/v1/payouts/{reference}`
+
+#### Headers:
+- `Authorization: Bearer <JWT>`
+
+#### Response: `200 OK`
+
+---
+
+### List Current User Payouts
+`GET /api/v1/payouts/me`
+
+#### Headers:
+- `Authorization: Bearer <JWT>`
+
+#### Response: `200 OK` (Array of PayoutResponse)
+
+---
+
+### Complete Payout Settlement (Phase 2A External Settlement)
+`POST /api/v1/payouts/{reference}/settle`
+
+Posts settlement journal entry from Escrow (`SYS-2002-USD`) to Clearing Bank (`SYS-1001-USD`) and marks payout `COMPLETED`.
+
+#### Response: `200 OK`
+
+---
+
+### Reverse Payout Settlement (Phase 2B External Reversal)
+`POST /api/v1/payouts/{reference}/reverse`
+
+Releases funds from Escrow (`SYS-2002-USD`) and refunds full principal + fee back into the customer's wallet. Marks payout `REVERSED`.
+
+#### Request:
+```json
+{
+  "success": false,
+  "failureReason": "Account closed or invalid account number"
+}
+```
+
+#### Response: `200 OK`
+
+---
+
+## 6. Standard Error Format (RFC 7807 Problem Details)
 
 All error responses return a standard structured payload:
 
