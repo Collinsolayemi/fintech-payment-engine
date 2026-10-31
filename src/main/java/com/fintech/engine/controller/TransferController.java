@@ -52,9 +52,11 @@ public class TransferController {
     @PostMapping
     public ResponseEntity<TransferResponse> initiateTransfer(
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
-            @Valid @RequestBody TransferRequest request) {
+            @Valid @RequestBody TransferRequest request,
+            org.springframework.security.core.Authentication authentication) {
 
         String requestHash = computeRequestHash("/api/v1/transfers", request);
+        String authenticatedEmail = authentication != null ? authentication.getName() : null;
 
         // 1. Check idempotency if key was provided
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
@@ -71,8 +73,8 @@ public class TransferController {
         }
 
         try {
-            // 2. Execute transfer
-            TransferResponse response = transferService.transfer(request, idempotencyKey);
+            // 2. Execute transfer with authenticated user context
+            TransferResponse response = transferService.transfer(request, idempotencyKey, authenticatedEmail);
 
             // 3. Cache response in idempotency store
             if (idempotencyKey != null && !idempotencyKey.isBlank()) {

@@ -44,7 +44,7 @@ public class TransferServiceImpl implements TransferService {
 
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public TransferResponse transfer(TransferRequest request, String idempotencyKey) {
+    public TransferResponse transfer(TransferRequest request, String idempotencyKey, String authenticatedUserEmail) {
         UUID senderId = request.senderAccountId();
         UUID recipientId = request.recipientAccountId();
 
@@ -75,7 +75,16 @@ public class TransferServiceImpl implements TransferService {
         Account senderAccount = senderId.equals(firstId) ? firstAccount : secondAccount;
         Account recipientAccount = recipientId.equals(firstId) ? firstAccount : secondAccount;
 
-        // 3. Status checks
+        // 3. Ownership Verification Guard
+        if (authenticatedUserEmail != null && senderAccount.getUser() != null) {
+            if (!senderAccount.getUser().getEmail().equalsIgnoreCase(authenticatedUserEmail)) {
+                log.warn("Security violation: User {} attempted to debit account {} belonging to {}",
+                        authenticatedUserEmail, senderId, senderAccount.getUser().getEmail());
+                throw new UnauthorizedAccountAccessException(senderId, authenticatedUserEmail);
+            }
+        }
+
+        // 4. Status checks
         if (senderAccount.getStatus() != AccountStatus.ACTIVE) {
             throw new IllegalStateException("Sender account " + senderAccount.getAccountNumber() + " is " + senderAccount.getStatus());
         }
