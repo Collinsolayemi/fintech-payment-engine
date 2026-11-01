@@ -10,6 +10,7 @@ import com.fintech.engine.model.enums.EntryType;
 import com.fintech.engine.repository.AccountRepository;
 import com.fintech.engine.repository.LedgerEntryRepository;
 import com.fintech.engine.repository.TransactionRepository;
+import com.fintech.engine.service.KycLimitService;
 import com.fintech.engine.service.LedgerService;
 import com.fintech.engine.service.TransferService;
 import org.slf4j.Logger;
@@ -35,16 +36,19 @@ public class TransferServiceImpl implements TransferService {
     private final TransactionRepository transactionRepository;
     private final LedgerEntryRepository ledgerEntryRepository;
     private final LedgerService ledgerService;
+    private final KycLimitService kycLimitService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public TransferServiceImpl(AccountRepository accountRepository,
                                TransactionRepository transactionRepository,
                                LedgerEntryRepository ledgerEntryRepository,
-                               LedgerService ledgerService) {
+                               LedgerService ledgerService,
+                               KycLimitService kycLimitService) {
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
         this.ledgerEntryRepository = ledgerEntryRepository;
         this.ledgerService = ledgerService;
+        this.kycLimitService = kycLimitService;
     }
 
     @Override
@@ -87,6 +91,11 @@ public class TransferServiceImpl implements TransferService {
                         authenticatedUserEmail, senderId, senderAccount.getUser().getEmail());
                 throw new UnauthorizedAccountAccessException(senderId, authenticatedUserEmail);
             }
+        }
+
+        // 4. KYC Limits Verification Guard
+        if (senderAccount.getUser() != null && kycLimitService != null) {
+            kycLimitService.validateTransactionLimit(senderAccount.getUser(), amount);
         }
 
         // 4. Status checks

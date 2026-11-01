@@ -13,6 +13,7 @@ import com.fintech.engine.model.enums.PayoutStatus;
 import com.fintech.engine.repository.AccountRepository;
 import com.fintech.engine.repository.PayoutRepository;
 import com.fintech.engine.repository.UserRepository;
+import com.fintech.engine.service.KycLimitService;
 import com.fintech.engine.service.LedgerService;
 import com.fintech.engine.service.PayoutService;
 import org.slf4j.Logger;
@@ -39,6 +40,7 @@ public class PayoutServiceImpl implements PayoutService {
     private final AccountRepository accountRepository;
     private final UserRepository userRepository;
     private final LedgerService ledgerService;
+    private final KycLimitService kycLimitService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Value("${fintech.payouts.flat-fee:2.00}")
@@ -48,12 +50,14 @@ public class PayoutServiceImpl implements PayoutService {
         PayoutRepository payoutRepository,
         AccountRepository accountRepository,
         UserRepository userRepository,
-        LedgerService ledgerService
+        LedgerService ledgerService,
+        KycLimitService kycLimitService
     ) {
         this.payoutRepository = payoutRepository;
         this.accountRepository = accountRepository;
         this.userRepository = userRepository;
         this.ledgerService = ledgerService;
+        this.kycLimitService = kycLimitService;
     }
 
     @Override
@@ -76,6 +80,11 @@ public class PayoutServiceImpl implements PayoutService {
                 log.warn("Security violation: User {} does not own account {}", authenticatedEmail, request.accountId());
                 throw new UnauthorizedAccountAccessException(request.accountId(), authenticatedEmail);
             }
+        }
+
+        // KYC Limit check
+        if (sourceAccount.getUser() != null && kycLimitService != null) {
+            kycLimitService.validateTransactionLimit(sourceAccount.getUser(), request.amount());
         }
 
         if (!sourceAccount.getCurrency().equalsIgnoreCase(currency)) {
