@@ -30,6 +30,28 @@ public class User {
     @Column(name = "kyc_tier", nullable = false)
     private int kycTier = 1;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "kyc_status", nullable = false, length = 32)
+    private com.fintech.engine.model.enums.KycStatus kycStatus = com.fintech.engine.model.enums.KycStatus.APPROVED;
+
+    @Column(name = "phone_number", length = 32)
+    private String phoneNumber;
+
+    @Column(name = "address_line")
+    private String addressLine;
+
+    @Column(length = 100)
+    private String city;
+
+    @Column(length = 64)
+    private String country;
+
+    @Column(name = "postal_code", length = 20)
+    private String postalCode;
+
+    @Column(name = "date_of_birth")
+    private java.time.LocalDate dateOfBirth;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
@@ -80,6 +102,27 @@ public class User {
 
     public int getKycTier() { return kycTier; }
     public void setKycTier(int kycTier) { this.kycTier = kycTier; }
+
+    public com.fintech.engine.model.enums.KycStatus getKycStatus() { return kycStatus; }
+    public void setKycStatus(com.fintech.engine.model.enums.KycStatus kycStatus) { this.kycStatus = kycStatus; }
+
+    public String getPhoneNumber() { return phoneNumber; }
+    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+
+    public String getAddressLine() { return addressLine; }
+    public void setAddressLine(String addressLine) { this.addressLine = addressLine; }
+
+    public String getCity() { return city; }
+    public void setCity(String city) { this.city = city; }
+
+    public String getCountry() { return country; }
+    public void setCountry(String country) { this.country = country; }
+
+    public String getPostalCode() { return postalCode; }
+    public void setPostalCode(String postalCode) { this.postalCode = postalCode; }
+
+    public java.time.LocalDate getDateOfBirth() { return dateOfBirth; }
+    public void setDateOfBirth(java.time.LocalDate dateOfBirth) { this.dateOfBirth = dateOfBirth; }
 
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }
