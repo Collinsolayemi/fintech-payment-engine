@@ -1,16 +1,21 @@
-# Fintech Backend Core (Ledger, Wallets & Payment Engine)
+# Fintech Platform (Ledger, Payment Engine & Next.js Portal)
 
 [![Java](https://img.shields.io/badge/Java-17%20%2F%2021%20LTS-orange.svg)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![Next.js](https://img.shields.io/badge/Next.js-14.2%20(App%20Router)-black.svg)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-18.3-61DAFB.svg)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-3.4-38B2AC.svg)](https://tailwindcss.com/)
 [![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL%2015+-blue.svg)](https://www.postgresql.org/)
 [![License](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
 
-A production-grade, enterprise fintech backend blueprint built with **Java** and **Spring Boot 3**. This system implements mission-critical financial engineering patterns: **Double-Entry Bookkeeping**, **Strict Idempotency**, **Pessimistic/Distributed Concurrency Controls**, and **Cryptographically Verified Webhook Ingestion**.
+A production-grade, enterprise fintech platform featuring an ACID **Java / Spring Boot 3** double-entry ledger backend paired with a modern, responsive **Next.js 14** web application. This platform implements mission-critical financial engineering patterns: **Double-Entry Bookkeeping**, **Strict Idempotency**, **Pessimistic/Distributed Concurrency Controls**, **Cryptographically Verified Webhook Ingestion**, and an **Intuitive Customer & Admin Financial Portal**.
 
 ---
 
 ## Table of Contents
 - [System Architecture](#system-architecture)
+- [Frontend Portal Features](#frontend-portal-features)
 - [Core Engineering Principles](#core-engineering-principles)
 - [Transaction Flows](#transaction-flows)
 - [Database Schema (ERD)](#database-schema-erd)
@@ -18,6 +23,9 @@ A production-grade, enterprise fintech backend blueprint built with **Java** and
 - [Documentation Index](#documentation-index)
 - [Project Directory Structure](#project-directory-structure)
 - [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [1. Backend Setup](#1-backend-setup)
+  - [2. Frontend Setup](#2-frontend-setup)
 - [Production Readiness Checklist](#production-readiness-checklist)
 
 ---
@@ -165,6 +173,7 @@ Payment Provider (Stripe/Paystack)     Fintech Backend         Database Ledger
 
 ## Tech Stack
 
+### Backend
 | Domain | Technology | Justification |
 | :--- | :--- | :--- |
 | **Language** | Java 17 / 21 LTS | Strong typing, virtual threads, high ecosystem maturity |
@@ -175,6 +184,16 @@ Payment Provider (Stripe/Paystack)     Fintech Backend         Database Ledger
 | **Messaging** | RabbitMQ / Kafka | Reliable async webhook processing & event notifications |
 | **Security** | Spring Security + JWT | Stateless token authentication, PBKDF2/BCrypt hashing |
 | **Testing** | JUnit 5 + Testcontainers | Integration tests against real PostgreSQL & Redis instances |
+
+### Frontend
+| Domain | Technology | Justification |
+| :--- | :--- | :--- |
+| **Framework** | Next.js 14 (App Router) | Server-side rendering, file-based routing, SEO, and fast load times |
+| **Library** | React 18 | Component-driven architecture and state management |
+| **Language** | TypeScript 5 | Strict static type safety matching backend DTO schemas |
+| **Styling** | Tailwind CSS 3.4 | Utility-first, enterprise-grade responsive UI styling |
+| **HTTP Client**| Axios | Centralized JWT and automated `Idempotency-Key` interceptors |
+| **Icons** | Lucide React | Clean, accessible financial UI icons |
 
 ---
 
@@ -193,31 +212,43 @@ Detailed architectural and design documentation is available in the [`docs/`](do
 
 ## Project Directory Structure
 
-Standard recommended package hierarchy for Spring Boot:
-
 ```
-src/
-├── main/
-│   ├── java/com/fintech/core/
-│   │   ├── common/
-│   │   │   ├── exceptions/          # Business exceptions & GlobalExceptionHandler
-│   │   │   ├── idempotency/         # Idempotency filter, annotations, repository
-│   │   │   └── util/                # Money formatting, reference generators
-│   │   ├── config/                  # Security, Redis, Async, OpenAPI configs
-│   │   ├── modules/
-│   │   │   ├── auth/                # JWT auth, user registration, 2FA
-│   │   │   ├── user/                # User profile, KYC status
-│   │   │   ├── account/             # Wallet/account management
-│   │   │   ├── ledger/              # Core double-entry ledger & entry postings
-│   │   │   ├── transfer/            # P2P transfers & transfer validation
-│   │   │   ├── payment/             # External payment gateway & webhook ingestion
-│   │   │   └── reconciliation/      # Daily automated integrity check jobs
-│   │   └── Application.java         # Main Spring Boot entrypoint
-│   └── resources/
-│       ├── db/migration/            # Flyway SQL migrations (V1__init.sql, etc.)
-│       └── application.yml          # Spring configuration
-└── test/
-    └── java/com/fintech/core/       # Unit & Testcontainers integration tests
+java fintech/
+├── frontend/                          # Next.js 14 Frontend Application
+│   ├── src/
+│   │   ├── app/                       # App Router routes & layouts
+│   │   │   ├── page.tsx               # Auth (Login / Register)
+│   │   │   ├── dashboard/page.tsx     # Wallet overview & balances
+│   │   │   ├── transfers/page.tsx     # P2P Transfers
+│   │   │   ├── payouts/page.tsx       # Bank Payouts
+│   │   │   ├── kyc/page.tsx           # KYC verification & document upload
+│   │   │   ├── admin/page.tsx         # Reconciliation trigger & audits
+│   │   │   └── layout.tsx             # Root layout & providers
+│   │   ├── components/                # UI components (Navbar, etc.)
+│   │   ├── context/                   # Auth & session context
+│   │   ├── lib/                       # Axios client & API endpoints
+│   │   └── types/                     # TypeScript models & response DTOs
+│   ├── package.json
+│   └── tailwind.config.ts
+│
+├── src/                               # Spring Boot 3 Backend
+│   ├── main/
+│   │   ├── java/com/fintech/engine/
+│   │   │   ├── common/                # Idempotency, GlobalExceptionHandler
+│   │   │   ├── config/                # SecurityConfig, RedisConfig, CORS
+│   │   │   ├── controller/            # REST Controllers (Auth, Transfer, etc.)
+│   │   │   ├── dto/                   # Request/Response payloads
+│   │   │   ├── entity/                # JPA entities (Account, LedgerEntry, etc.)
+│   │   │   ├── repository/            # Spring Data JPA repositories with locks
+│   │   │   ├── security/              # JWT filter, CustomUserDetailsService
+│   │   │   └── service/               # Core double-entry ledger & transfers
+│   │   └── resources/
+│   │       ├── db/migration/          # Flyway SQL migrations
+│   │       └── application.yml        # Spring environment configs
+│   └── test/                          # Unit & integration tests
+│
+├── docker-compose.yml                 # PostgreSQL & Redis infrastructure
+└── pom.xml                            # Maven dependencies
 ```
 
 ---
@@ -226,30 +257,62 @@ src/
 
 ### Prerequisites
 - **JDK 17 or 21**
+- **Node.js 18+ and npm**
 - **Docker & Docker Compose** (for PostgreSQL and Redis)
-- **Maven 3.8+**
+- **Maven 3.8+** (or use the included `./mvnw`)
 
-### Local Setup
+---
+
+### 1. Backend Setup
+
 1. **Clone repository**:
    ```bash
-   git clone https://github.com/your-org/fintech-backend.git
+   git clone https://github.com/Collinsolayemi/fintech-payment-engine.git
    cd "java fintech"
    ```
 
-2. **Start Infrastructure Services**:
+2. **Start Infrastructure Services (PostgreSQL & Redis)**:
    ```bash
    docker compose up -d
    ```
 
-3. **Run Migrations & Build**:
+3. **Build & Run Spring Boot Backend**:
    ```bash
    ./mvnw clean install
-   ```
-
-4. **Launch Application**:
-   ```bash
    ./mvnw spring-boot:run
    ```
+   The backend API will be available at **`http://localhost:8080`**.
+
+---
+
+### 2. Frontend Setup
+
+In a new terminal window:
+
+1. **Navigate to frontend directory & install dependencies**:
+   ```bash
+   cd frontend
+   npm install
+   ```
+
+2. **Configure Environment (Optional)**:
+   Ensure `frontend/.env.local` points to your backend URL:
+   ```env
+   NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
+   ```
+
+3. **Start the Next.js Development Server**:
+   ```bash
+   npm run dev
+   ```
+   Open your browser at **[http://localhost:3000](http://localhost:3000)**.
+
+---
+
+### Default Roles & Access
+
+- **Standard Customer**: Register a new user via the interface at `/` to automatically provision a multi-currency liability account.
+- **Admin**: Users with the `ADMIN` role can navigate to `/admin` to trigger on-demand reconciliation and inspect the ledger consistency status.
 
 ---
 

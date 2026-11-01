@@ -12,6 +12,7 @@ This document details the core architectural mechanisms, concurrency controls, a
 5. [Inbound Webhook Verification Flow](#5-inbound-webhook-verification-flow)
 6. [Outbound Payout Flow](#6-outbound-payout-flow)
 7. [Reconciliation Architecture](#7-reconciliation-architecture)
+8. [Frontend Architecture & Security Integration](#8-frontend-architecture--security-integration)
 
 ---
 
@@ -226,4 +227,23 @@ Reconciliation is the automated process that verifies that platform internal boo
      - Missing transactions (present in bank, missing in ledger).
      - Ghost transactions (marked successful in ledger, missing in bank).
      - Fee discrepancies.
+
+---
+
+## 8. Frontend Architecture & Security Integration
+
+The web frontend is built with **Next.js 14 App Router** (`frontend/`) and connects to the Spring Boot REST backend:
+
+### Component & State Architecture
+- **`AuthContext` (`frontend/src/context/AuthContext.tsx`)**: Global React Context managing JWT access tokens, authenticated user profile, and automatic redirect for protected routes.
+- **API Interceptor (`frontend/src/lib/api.ts`)**: Centralized Axios instance configured with:
+  - Base URL injection (`NEXT_PUBLIC_API_URL`, default `http://localhost:8080/api/v1`).
+  - Request Interceptors attaching the Bearer JWT token from `localStorage`.
+  - Automated UUIDv4 generation for the `Idempotency-Key` header on all non-GET financial operations (`POST`, `PUT`, `PATCH`).
+  - Response Interceptors detecting `401 Unauthorized` and smoothly resetting expired client sessions.
+
+### Security & CORS Integration
+- Spring Boot's [`SecurityConfig.java`](file:///Users/macbook/Documents/java%20fintech/src/main/java/com/fintech/engine/security/SecurityConfig.java) permits cross-origin resource sharing from `http://localhost:3000` with credential support.
+- Pre-flight `OPTIONS` requests are authorized without requiring authentication.
+- Sensitive headers like `Idempotency-Key` and `Authorization` are explicitly whitelisted and exposed in CORS configuration.
 
