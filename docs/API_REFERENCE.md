@@ -469,7 +469,118 @@ Releases funds from Escrow (`SYS-2002-USD`) and refunds full principal + fee bac
 
 ---
 
-## 6. Standard Error Format (RFC 7807 Problem Details)
+## 6. Reconciliation & Audit Engine
+
+Admin-only endpoints (`ROLE_ADMIN`) for scheduled and on-demand trial balance audits, invariant checks, and payment gateway settlement matching.
+
+### Run Internal Integrity Audit
+Runs the automated internal ledger check: global trial balance ($\sum \text{Debits} == \sum \text{Credits}$), currency trial balance, per-transaction balance, negative wallet checks, escrow alignment, and posting completeness.
+
+`POST /api/v1/reconciliation/runs`
+
+#### Headers:
+- `Authorization: Bearer <ADMIN_JWT_TOKEN>`
+
+#### Response: `201 Created`
+```json
+{
+  "id": "e58b8f21-7d12-4f36-9b81-a537f2a10b42",
+  "type": "INTERNAL_INTEGRITY",
+  "status": "PASSED",
+  "provider": null,
+  "triggeredBy": "admin@fintech.com",
+  "totalDebits": 1500000.0000,
+  "totalCredits": 1500000.0000,
+  "discrepancyCount": 0,
+  "startedAt": "2026-11-01T21:00:00Z",
+  "completedAt": "2026-11-01T21:00:02Z",
+  "discrepancies": []
+}
+```
+
+---
+
+### Reconcile Gateway Settlement
+Matches an external provider settlement report against ledger deposit records (`DEP-{PROVIDER}-{reference}`) within a specified period.
+
+`POST /api/v1/reconciliation/settlements/{provider}`
+
+Path variable `provider`: `STRIPE`, `PAYSTACK`, `FLUTTERWAVE`
+
+#### Headers:
+- `Authorization: Bearer <ADMIN_JWT_TOKEN>`
+- `Content-Type: application/json`
+
+#### Request:
+```json
+{
+  "periodStart": "2026-10-31T00:00:00Z",
+  "periodEnd": "2026-11-01T00:00:00Z",
+  "records": [
+    {
+      "reference": "ch_3NabcXYZ123456",
+      "amount": 250.00,
+      "currency": "USD"
+    }
+  ]
+}
+```
+
+#### Response: `201 Created`
+```json
+{
+  "id": "f12c3d4e-5a6b-7c8d-9e0f-1a2b3c4d5e6f",
+  "type": "GATEWAY_SETTLEMENT",
+  "status": "FAILED",
+  "provider": "STRIPE",
+  "triggeredBy": "admin@fintech.com",
+  "periodStart": "2026-10-31T00:00:00Z",
+  "periodEnd": "2026-11-01T00:00:00Z",
+  "externalTotal": 250.0000,
+  "ledgerTotal": 150.0000,
+  "recordsChecked": 1,
+  "discrepancyCount": 1,
+  "startedAt": "2026-11-01T21:05:00Z",
+  "completedAt": "2026-11-01T21:05:01Z",
+  "discrepancies": [
+    {
+      "id": "a9b8c7d6-e5f4-3210-fedc-ba9876543210",
+      "type": "AMOUNT_MISMATCH",
+      "severity": "CRITICAL",
+      "reference": "ch_3NabcXYZ123456",
+      "currency": "USD",
+      "expectedAmount": 250.00,
+      "actualAmount": 150.00,
+      "details": "Provider settled 250.00 but ledger credited 150.00 for DEP-STRIPE-ch_3NabcXYZ123456",
+      "createdAt": "2026-11-01T21:05:01Z"
+    }
+  ]
+}
+```
+
+---
+
+### List Reconciliation Runs
+`GET /api/v1/reconciliation/runs?page=0&size=20`
+
+#### Headers:
+- `Authorization: Bearer <ADMIN_JWT_TOKEN>`
+
+#### Response: `200 OK`
+
+---
+
+### Get Reconciliation Run Report
+`GET /api/v1/reconciliation/runs/{runId}`
+
+#### Headers:
+- `Authorization: Bearer <ADMIN_JWT_TOKEN>`
+
+#### Response: `200 OK`
+
+---
+
+## 7. Standard Error Format (RFC 7807 Problem Details)
 
 All error responses return a standard structured payload:
 
