@@ -580,7 +580,152 @@ Path variable `provider`: `STRIPE`, `PAYSTACK`, `FLUTTERWAVE`
 
 ---
 
-## 7. Standard Error Format (RFC 7807 Problem Details)
+## 7. User Profile & KYC Management
+
+Endpoints for viewing customer profiles, inspecting KYC daily/single limits, requesting tier upgrades, and administrative adjudication.
+
+### Get My Profile
+Retrieves full user details, contact information, current KYC tier, and calculated daily remaining volume.
+
+`GET /api/v1/users/me`
+
+#### Headers:
+- `Authorization: Bearer <USER_JWT_TOKEN>`
+
+#### Response: `200 OK`
+```json
+{
+  "id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+  "email": "customer@example.com",
+  "firstName": "John",
+  "lastName": "Doe",
+  "role": "ROLE_USER",
+  "kycTier": 1,
+  "kycTierDescription": "Basic (Email Verified)",
+  "singleTransactionLimit": 500.00,
+  "dailyLimit": 1000.00,
+  "dailyUsedToday": 150.00,
+  "dailyRemainingToday": 850.00,
+  "kycStatus": "APPROVED",
+  "phoneNumber": "+1234567890",
+  "addressLine": "100 Broadway",
+  "city": "New York",
+  "country": "USA",
+  "postalCode": "10005",
+  "dateOfBirth": "1992-05-14",
+  "createdAt": "2026-10-31T12:00:00Z",
+  "updatedAt": "2026-11-01T15:00:00Z"
+}
+```
+
+---
+
+### Update My Profile
+Updates personal address and contact details.
+
+`PATCH /api/v1/users/me`
+
+#### Headers:
+- `Authorization: Bearer <USER_JWT_TOKEN>`
+- `Content-Type: application/json`
+
+#### Request:
+```json
+{
+  "firstName": "Jonathan",
+  "phoneNumber": "+1234567890",
+  "addressLine": "250 Fifth Avenue",
+  "city": "New York",
+  "country": "USA",
+  "postalCode": "10001"
+}
+```
+
+#### Response: `200 OK` (Updated UserProfileResponse)
+
+---
+
+### Submit KYC Upgrade Application
+Submits identity documents to request promotion from Tier 1 to Tier 2 (or Tier 2 to Tier 3). Progression must be sequential.
+
+`POST /api/v1/users/kyc/upgrade`
+
+#### Headers:
+- `Authorization: Bearer <USER_JWT_TOKEN>`
+- `Content-Type: application/json`
+
+#### Request:
+```json
+{
+  "targetTier": 2,
+  "idType": "PASSPORT",
+  "idNumber": "A12345678",
+  "documentUrl": "https://storage.fintech.example.com/kyc/doc-passport.jpg"
+}
+```
+
+#### Response: `201 Created`
+```json
+{
+  "id": "c7a8b9d0-1234-4567-89ab-cdef01234567",
+  "userId": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+  "userEmail": "customer@example.com",
+  "targetTier": 2,
+  "idType": "PASSPORT",
+  "idNumber": "A12345678",
+  "documentUrl": "https://storage.fintech.example.com/kyc/doc-passport.jpg",
+  "status": "SUBMITTED",
+  "rejectionReason": null,
+  "reviewedBy": null,
+  "createdAt": "2026-11-01T21:50:00Z",
+  "updatedAt": "2026-11-01T21:50:00Z"
+}
+```
+
+---
+
+### List My KYC Applications
+`GET /api/v1/users/kyc/applications`
+
+#### Headers:
+- `Authorization: Bearer <USER_JWT_TOKEN>`
+
+#### Response: `200 OK` (Array of KycApplicationResponse)
+
+---
+
+### Admin: Search & List Customers
+`GET /api/v1/admin/users?search=john&page=0&size=20`
+
+#### Headers:
+- `Authorization: Bearer <ADMIN_JWT_TOKEN>`
+
+#### Response: `200 OK` (Spring Data Page of UserProfileResponse)
+
+---
+
+### Admin: Review KYC Application
+Adjudicates an application. Approving the request immediately promotes the user to the requested KYC tier.
+
+`POST /api/v1/admin/users/kyc/applications/{id}/review`
+
+#### Headers:
+- `Authorization: Bearer <ADMIN_JWT_TOKEN>`
+- `Content-Type: application/json`
+
+#### Request:
+```json
+{
+  "status": "APPROVED",
+  "rejectionReason": null
+}
+```
+
+#### Response: `200 OK` (Updated KycApplicationResponse)
+
+---
+
+## 8. Standard Error Format (RFC 7807 Problem Details)
 
 All error responses return a standard structured payload:
 
