@@ -220,6 +220,46 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(KycLimitExceededException.class)
+    public ProblemDetail handleKycLimitExceeded(KycLimitExceededException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        problem.setTitle("KYC Limit Exceeded");
+        problem.setType(URI.create("https://api.fintech.example.com/errors/kyc-limit-exceeded"));
+        problem.setProperty("code", ex.getErrorCode());
+        problem.setProperty("timestamp", OffsetDateTime.now());
+        return problem;
+    }
+
+    @ExceptionHandler(KycApplicationNotFoundException.class)
+    public ProblemDetail handleKycApplicationNotFound(KycApplicationNotFoundException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        problem.setTitle("KYC Application Not Found");
+        problem.setType(URI.create("https://api.fintech.example.com/errors/kyc-application-not-found"));
+        problem.setProperty("code", ex.getErrorCode());
+        problem.setProperty("timestamp", OffsetDateTime.now());
+        return problem;
+    }
+
+    @ExceptionHandler(DuplicateKycApplicationException.class)
+    public ProblemDetail handleDuplicateKycApplication(DuplicateKycApplicationException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setTitle("Duplicate KYC Application");
+        problem.setType(URI.create("https://api.fintech.example.com/errors/duplicate-kyc-application"));
+        problem.setProperty("code", ex.getErrorCode());
+        problem.setProperty("timestamp", OffsetDateTime.now());
+        return problem;
+    }
+
+    @ExceptionHandler(InvalidKycTierException.class)
+    public ProblemDetail handleInvalidKycTier(InvalidKycTierException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        problem.setTitle("Invalid KYC Tier");
+        problem.setType(URI.create("https://api.fintech.example.com/errors/invalid-kyc-tier"));
+        problem.setProperty("code", ex.getErrorCode());
+        problem.setProperty("timestamp", OffsetDateTime.now());
+        return problem;
+    }
+
     @ExceptionHandler(IdempotencyConflictException.class)
     public ProblemDetail handleIdempotencyConflict(IdempotencyConflictException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
