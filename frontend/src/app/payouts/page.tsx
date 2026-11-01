@@ -6,7 +6,26 @@ import { useAuth } from "@/context/AuthContext";
 import { Navbar } from "@/components/Navbar";
 import { api, generateUUID } from "@/lib/api";
 import { AccountBalance, PayoutResponse } from "@/types";
-import { Landmark, ArrowUpRight, CheckCircle2, Clock, AlertTriangle, RefreshCw } from "lucide-react";
+import { 
+  Landmark, 
+  ArrowUpRight, 
+  CheckCircle2, 
+  Clock, 
+  AlertTriangle, 
+  RefreshCw,
+  Building,
+  ShieldCheck,
+  Check,
+  Copy,
+  Info
+} from "lucide-react";
+
+const SUPPORTED_BANKS = [
+  { code: "021000021", name: "JPMorgan Chase", rail: "Instant FedNow" },
+  { code: "011000138", name: "Bank of America", rail: "RTP / ACH" },
+  { code: "121000248", name: "Wells Fargo", rail: "Same-Day ACH" },
+  { code: "021000089", name: "Citibank N.A.", rail: "Fedwire" },
+];
 
 export default function PayoutsPage() {
   const { user, isLoading, refreshProfile } = useAuth();
@@ -15,13 +34,14 @@ export default function PayoutsPage() {
   const [accounts, setAccounts] = useState<AccountBalance[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState("");
   const [amount, setAmount] = useState("");
-  const [bankCode, setBankCode] = useState("044");
+  const [bankCode, setBankCode] = useState(SUPPORTED_BANKS[0].code);
   const [accountNumber, setAccountNumber] = useState("");
   const [accountName, setAccountName] = useState("");
   const [payouts, setPayouts] = useState<PayoutResponse[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -37,15 +57,18 @@ export default function PayoutsPage() {
         const accRes = await api.get<AccountBalance[]>(`/accounts/user/${user.id}`);
         setAccounts(accRes.data);
         if (accRes.data.length > 0) {
-          setSelectedAccountId(accRes.data[0].accountId);
+          setSelectedAccountId(accRes.data[0].id || accRes.data[0].accountId);
         }
       }
       const pRes = await api.get<PayoutResponse[]>("/payouts/my-payouts");
-      setPayouts(pRes.data);
+      setPayouts(pRes.data || []);
     } catch (e) {
       console.error(e);
     }
   };
+
+  const activeAccount = accounts.find((a) => (a.id || a.accountId) === selectedAccountId) || accounts[0];
+  const activeBalance = activeAccount ? parseFloat(activeAccount.balance.toString()) : 0;
 
   const handleInitiatePayout = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +83,7 @@ export default function PayoutsPage() {
         {
           accountId: selectedAccountId,
           amount: parseFloat(amount),
-          currency: "USD",
+          currency: activeAccount?.currency || "USD",
           destinationBankCode: bankCode,
           destinationAccountNumber: accountNumber,
           destinationAccountName: accountName,
@@ -72,213 +95,315 @@ export default function PayoutsPage() {
         }
       );
 
-      setSuccess(`Payout ${res.data.reference} initiated and placed in settlement escrow.`);
+      setSuccess(`Payout ${res.data.reference} successfully queued in settlement escrow.`);
       setAmount("");
       setAccountNumber("");
       setAccountName("");
       await refreshProfile();
       loadData();
     } catch (err: any) {
-      const msg = err.response?.data?.detail || err.response?.data?.message || "Payout initiation failed";
+      const msg = err.response?.data?.detail || err.response?.data?.message || "Payout initiation failed. Check your balance.";
       setError(msg);
     } finally {
       setSubmitting(false);
     }
   };
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(text);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
   if (isLoading || !user) return null;
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-[#05070e] text-slate-100">
       <Navbar />
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <Landmark className="w-6 h-6 text-blue-500" />
-            External Bank Payouts
-          </h1>
-          <p className="text-sm text-slate-400">
-            Two-phase escrow settlement: funds are locked in platform escrow before external clearing.
-          </p>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="h-10 w-10 rounded-2xl bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
+                <Landmark className="w-5 h-5" />
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                External Bank Payouts
+              </h1>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-400 mt-1">
+              Automated escrow reservation • Two-phase cryptographic settlement rail
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-blue-500/20 bg-blue-500/10 text-blue-400 text-xs font-mono">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Escrow Invariant Active</span>
+          </div>
         </div>
 
-        {error && (
-          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm">
-            {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            {success}
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Initiation Form */}
-          <div className="lg:col-span-1 rounded-2xl bg-slate-900 border border-slate-800 p-6 shadow-xl h-fit">
-            <h2 className="text-base font-bold text-white mb-4">Request Withdrawal</h2>
-
-            <form onSubmit={handleInitiatePayout} className="space-y-4">
+        {/* Two-Column Grid: Form & Info */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* Left Column: Form */}
+          <div className="lg:col-span-7 rounded-3xl border border-white/10 bg-slate-900/70 p-6 sm:p-8 backdrop-blur-2xl shadow-xl space-y-6">
+            
+            <div className="flex items-center justify-between border-b border-white/5 pb-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
-                  Source Wallet
+                <h2 className="text-base font-bold text-white">Withdrawal Details</h2>
+                <p className="text-xs text-slate-400">Funds are held in escrow pending external bank clearance</p>
+              </div>
+              <span className="text-xs font-mono font-bold text-emerald-400">
+                Fee: $1.50
+              </span>
+            </div>
+
+            {error && (
+              <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">
+                {error}
+              </div>
+            )}
+
+            {success && (
+              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>{success}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleInitiatePayout} className="space-y-5">
+              
+              {/* Select Source Account */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                  Debit Account (Wallet)
                 </label>
                 <select
                   value={selectedAccountId}
                   onChange={(e) => setSelectedAccountId(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
+                  className="w-full px-4 py-3 bg-slate-950 border border-slate-700/80 rounded-2xl text-white font-mono text-sm focus:outline-none focus:border-blue-500"
                 >
                   {accounts.map((acc) => (
-                    <option key={acc.accountId} value={acc.accountId}>
-                      {acc.accountName} (${acc.balance.toFixed(2)})
+                    <option key={acc.id || acc.accountId} value={acc.id || acc.accountId}>
+                      {acc.currency} Wallet — Balance: ${parseFloat(acc.balance.toString()).toFixed(2)} ({acc.id || acc.accountId})
                     </option>
                   ))}
                 </select>
               </div>
 
+              {/* Destination Bank Grid */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
-                  Amount ($ USD)
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                  Destination Banking Partner
                 </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="1"
-                  required
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="100.00"
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-blue-500"
-                />
-                <span className="text-[11px] text-slate-500 block mt-1">+ $2.00 flat platform fee</span>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {SUPPORTED_BANKS.map((bank) => (
+                    <button
+                      key={bank.code}
+                      type="button"
+                      onClick={() => setBankCode(bank.code)}
+                      className={`p-3 rounded-2xl border text-left transition-all ${
+                        bankCode === bank.code
+                          ? "bg-blue-600/20 border-blue-500/50 text-white shadow-md shadow-blue-500/10"
+                          : "bg-slate-950/80 border-white/5 text-slate-400 hover:text-white hover:bg-slate-800"
+                      }`}
+                    >
+                      <div className="text-xs font-bold text-slate-200">{bank.name}</div>
+                      <div className="text-[10px] font-mono text-blue-400 mt-0.5">{bank.rail}</div>
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
-                  Bank Code / Routing #
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={bankCode}
-                  onChange={(e) => setBankCode(e.target.value)}
-                  placeholder="044 (Access) / 058 (GTB)"
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
-                />
+              {/* Account Number & Beneficiary Name */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                    Routing / Account Number
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={accountNumber}
+                    onChange={(e) => setAccountNumber(e.target.value)}
+                    placeholder="021000021-994821"
+                    className="w-full px-4 py-3 bg-slate-950 border border-slate-700/80 rounded-2xl text-white font-mono text-sm focus:outline-none focus:border-blue-500 placeholder:text-slate-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                    Beneficiary Legal Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={accountName}
+                    onChange={(e) => setAccountName(e.target.value)}
+                    placeholder="Johnathan Doe"
+                    className="w-full px-4 py-3 bg-slate-950 border border-slate-700/80 rounded-2xl text-white text-sm focus:outline-none focus:border-blue-500 placeholder:text-slate-600"
+                  />
+                </div>
               </div>
 
+              {/* Amount */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
-                  Account Number
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                  Payout Amount ({activeAccount?.currency || "USD"})
                 </label>
-                <input
-                  type="text"
-                  required
-                  value={accountNumber}
-                  onChange={(e) => setAccountNumber(e.target.value)}
-                  placeholder="0123456789"
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-blue-500"
-                />
+                <div className="relative">
+                  <span className="absolute left-4 top-3 text-lg font-mono font-bold text-slate-400">$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="1.00"
+                    max={activeBalance}
+                    required
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full pl-9 pr-4 py-3 bg-slate-950 border border-slate-700/80 rounded-2xl text-white font-mono text-lg font-bold focus:outline-none focus:border-blue-500 placeholder:text-slate-600"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
-                  Account Holder Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={accountName}
-                  onChange={(e) => setAccountName(e.target.value)}
-                  placeholder="Johnathan Doe"
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
+              {/* Action Button */}
               <button
                 type="submit"
-                disabled={submitting}
-                className="w-full py-2.5 px-4 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-50"
+                disabled={submitting || !amount || parseFloat(amount) <= 0 || !accountNumber}
+                className="w-full py-4 rounded-2xl font-bold text-sm text-white bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-40"
               >
-                {submitting ? "Initiating..." : "Initiate Escrow Lock"}
+                {submitting ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <span>Initiate Escrow Payout</span>
+                    <ArrowUpRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
             </form>
           </div>
 
-          {/* Previous Payouts Table */}
-          <div className="lg:col-span-2 rounded-2xl bg-slate-900 border border-slate-800 p-6 shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold text-white">Recent Payout Settlements</h2>
-              <button
-                onClick={loadData}
-                className="text-xs text-slate-400 hover:text-white flex items-center gap-1"
-              >
-                <RefreshCw className="w-3.5 h-3.5" /> Refresh
-              </button>
+          {/* Right Column: Escrow Mechanism & Security Info */}
+          <div className="lg:col-span-5 space-y-6">
+            
+            {/* Escrow Workflow Visualizer */}
+            <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-6 backdrop-blur-xl shadow-xl space-y-4">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Info className="w-4 h-4 text-blue-400" /> Two-Phase Settlement Escrow
+              </h3>
+
+              <div className="space-y-3 text-xs text-slate-400 font-mono">
+                <div className="p-3 rounded-2xl bg-slate-950/80 border border-white/5 space-y-1">
+                  <div className="text-blue-400 font-bold">1. Phase 1: Escrow Reservation</div>
+                  <div>Debit: User Liability Account</div>
+                  <div>Credit: Pending Settlements Escrow</div>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-slate-950/80 border border-white/5 space-y-1">
+                  <div className="text-amber-400 font-bold">2. Phase 2: Bank Webhook Clearance</div>
+                  <div>Debit: Pending Settlements Escrow</div>
+                  <div>Credit: Platform Clearing Asset Account</div>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-slate-950/80 border border-white/5 space-y-1">
+                  <div className="text-rose-400 font-bold">3. Reversal On Failure</div>
+                  <div>Full refund credited back to User Wallet if clearing rejects.</div>
+                </div>
+              </div>
             </div>
 
-            {payouts.length === 0 ? (
-              <div className="py-12 text-center text-slate-500 text-sm">
-                No outbound payouts requested yet.
+            {/* Compliance Note */}
+            <div className="rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-6 backdrop-blur-xl text-xs space-y-2">
+              <div className="text-emerald-400 font-bold flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4" /> Daily Outbound Limits Enforced
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs text-slate-300">
-                  <thead className="uppercase bg-slate-950 text-slate-400 border-b border-slate-800">
-                    <tr>
-                      <th className="py-2.5 px-3">Reference</th>
-                      <th className="py-2.5 px-3">Destination</th>
-                      <th className="py-2.5 px-3">Amount</th>
-                      <th className="py-2.5 px-3">Status</th>
-                      <th className="py-2.5 px-3">Date</th>
+              <p className="text-slate-400 leading-relaxed">
+                Payout amounts count against your Tier {user.kycTier} daily limit (${user.dailyLimit.toLocaleString()}).
+                Tier 3 verified customers enjoy unlimited real-time payouts.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Payout History Table */}
+        <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-white">Recent External Withdrawals</h2>
+              <p className="text-xs text-slate-400">Track clearance status and settlement webhook receipts</p>
+            </div>
+            <button
+              onClick={loadData}
+              className="p-2 rounded-xl border border-white/10 text-slate-400 hover:text-white"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-white/5 text-slate-400 font-mono uppercase text-[10px] tracking-wider">
+                  <th className="py-3 px-3">Reference</th>
+                  <th className="py-3 px-3">Beneficiary Account</th>
+                  <th className="py-3 px-3">Status</th>
+                  <th className="py-3 px-3">Date</th>
+                  <th className="py-3 px-3 text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {payouts.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-10 text-center text-slate-500">
+                      No payout records yet.
+                    </td>
+                  </tr>
+                ) : (
+                  payouts.map((p) => (
+                    <tr key={p.reference} className="hover:bg-slate-800/30">
+                      <td className="py-3 px-3 font-mono font-medium text-slate-200">
+                        <div className="flex items-center gap-2">
+                          <span>{p.reference}</span>
+                          <button
+                            onClick={() => copyToClipboard(p.reference)}
+                            className="text-slate-500 hover:text-slate-300"
+                          >
+                            {copied === p.reference ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                      </td>
+                      <td className="py-3 px-3 text-slate-300 font-mono">
+                        {p.destinationAccountNumber || "••••••••"} ({p.destinationBankCode})
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide ${
+                          p.status === "COMPLETED"
+                            ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                            : p.status === "PENDING_ESCROW" || p.status === "PROCESSING"
+                            ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+                            : "bg-slate-700/50 text-slate-400"
+                        }`}>
+                          {p.status}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 text-slate-400 font-mono text-[11px]">
+                        {p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "Just now"}
+                      </td>
+                      <td className="py-3 px-3 text-right font-mono font-bold text-rose-400">
+                        -${parseFloat(p.amount.toString()).toFixed(2)} {p.currency}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/60 font-mono">
-                    {payouts.map((p) => {
-                      const isComplete = p.status === "COMPLETED";
-                      const isPending = p.status === "PROCESSING" || p.status === "PENDING_ESCROW";
-                      return (
-                        <tr key={p.id} className="hover:bg-slate-800/30">
-                          <td className="py-3 px-3 font-medium text-white">{p.reference}</td>
-                          <td className="py-3 px-3 font-sans">
-                            <div className="text-white">{p.destinationAccountName}</div>
-                            <div className="text-slate-500 text-[11px]">{p.destinationAccountNumber} ({p.destinationBankCode})</div>
-                          </td>
-                          <td className="py-3 px-3 font-bold text-white">
-                            ${p.amount.toFixed(2)}
-                            <span className="text-[10px] text-slate-500 block font-normal">+${p.fee.toFixed(2)} fee</span>
-                          </td>
-                          <td className="py-3 px-3">
-                            <span
-                              className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium ${
-                                isComplete
-                                  ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                                  : isPending
-                                  ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                                  : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
-                              }`}
-                            >
-                              {isComplete ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-                              {p.status}
-                            </span>
-                          </td>
-                          <td className="py-3 px-3 text-slate-400 font-sans">
-                            {new Date(p.createdAt).toLocaleDateString()}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </main>
     </div>
   );
 }
-

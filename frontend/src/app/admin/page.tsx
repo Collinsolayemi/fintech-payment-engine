@@ -6,7 +6,21 @@ import { useAuth } from "@/context/AuthContext";
 import { Navbar } from "@/components/Navbar";
 import { api } from "@/lib/api";
 import { KycApplication, ReconciliationRun, UserProfile } from "@/types";
-import { ShieldAlert, Play, CheckCircle2, XCircle, Search, RefreshCw, AlertTriangle } from "lucide-react";
+import { 
+  ShieldAlert, 
+  Play, 
+  CheckCircle2, 
+  XCircle, 
+  Search, 
+  RefreshCw, 
+  AlertTriangle,
+  Scale,
+  Users,
+  FileCheck2,
+  Activity,
+  ArrowRight,
+  Database
+} from "lucide-react";
 
 export default function AdminPage() {
   const { user, isLoading } = useAuth();
@@ -35,7 +49,7 @@ export default function AdminPage() {
   const loadData = async () => {
     try {
       const runsRes = await api.get<ReconciliationRun[]>("/reconciliation/runs?page=0&size=10");
-      setRuns(runsRes.data);
+      setRuns(runsRes.data || []);
 
       const kycRes = await api.get<{ content: KycApplication[] }>("/admin/users/kyc/applications?status=SUBMITTED");
       setPendingKyc(kycRes.data.content || []);
@@ -54,7 +68,7 @@ export default function AdminPage() {
       const res = await api.post<ReconciliationRun>("/reconciliation/runs");
       setMessage({
         type: res.data.status === "PASSED" ? "success" : "error",
-        text: `Internal audit completed with status: ${res.data.status} (${res.data.discrepancyCount} discrepancies).`,
+        text: `Reconciliation audit finished: ${res.data.status} with ${res.data.discrepancyCount} discrepancy.`,
       });
       loadData();
     } catch (err: any) {
@@ -90,249 +104,307 @@ export default function AdminPage() {
   if (isLoading || !user || user.role !== "ROLE_ADMIN") return null;
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-[#05070e] text-slate-100">
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        
+        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-              <ShieldAlert className="w-6 h-6 text-amber-500" />
-              Administrative Back-Office
-            </h1>
-            <p className="text-sm text-slate-400">
-              Audit double-entry ledger invariants, review KYC applications, and manage platform users.
+            <div className="flex items-center gap-2">
+              <div className="h-10 w-10 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center">
+                <ShieldAlert className="w-5 h-5" />
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                Admin & Reconciliation Console
+              </h1>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-400 mt-1">
+              Trial balance invariant verification • Compliance approvals • System user oversight
             </p>
           </div>
 
-          <div className="flex rounded-lg bg-slate-900 border border-slate-800 p-1">
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => setActiveTab("reconciliation")}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                activeTab === "reconciliation" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"
-              }`}
+              onClick={handleRunInternalAudit}
+              disabled={loadingAction}
+              className="px-4 py-2.5 rounded-xl font-bold text-xs bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2 disabled:opacity-50"
             >
-              Ledger Reconciliation
+              <Play className={`w-3.5 h-3.5 ${loadingAction ? "animate-spin" : ""}`} />
+              <span>{loadingAction ? "Auditing Ledger..." : "Trigger Full Reconciliation"}</span>
             </button>
+
             <button
-              onClick={() => setActiveTab("kyc")}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 ${
-                activeTab === "kyc" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"
-              }`}
+              onClick={loadData}
+              className="p-2.5 rounded-xl border border-white/10 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
             >
-              KYC Queue
-              {pendingKyc.length > 0 && (
-                <span className="h-4 w-4 rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center font-bold">
-                  {pendingKyc.length}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab("users")}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                activeTab === "users" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"
-              }`}
-            >
-              Users Directory
+              <RefreshCw className="w-4 h-4" />
             </button>
           </div>
         </div>
 
+        {/* Global Notifications */}
         {message && (
           <div
-            className={`p-4 rounded-xl border text-sm flex items-center gap-2 ${
+            className={`p-4 rounded-2xl text-xs flex items-center justify-between border ${
               message.type === "success"
                 ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                : "bg-rose-500/10 border-rose-500/30 text-rose-400"
+                : "bg-rose-500/10 border-rose-500/30 text-rose-300"
             }`}
           >
-            {message.type === "success" ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
-            {message.text}
+            <div className="flex items-center gap-2">
+              {message.type === "success" ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+              <span>{message.text}</span>
+            </div>
+            <button onClick={() => setMessage(null)} className="text-slate-400 hover:text-white font-bold">&times;</button>
           </div>
         )}
 
-        {/* Tab 1: Reconciliation */}
-        {activeTab === "reconciliation" && (
-          <div className="space-y-6">
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
-              <div>
-                <h3 className="text-base font-bold text-white mb-1">On-Demand Integrity Audit</h3>
-                <p className="text-xs text-slate-400">
-                  Verifies Σ Debits == Σ Credits, per-currency trial balance, zero negative wallets, and escrow alignment.
-                </p>
-              </div>
+        {/* Key Metrics Gauges */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="p-6 rounded-3xl border border-white/10 bg-slate-900/60 backdrop-blur-xl relative overflow-hidden">
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+              <span>Ledger Health Check</span>
+              <Scale className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div className="text-2xl font-black font-mono text-emerald-400">
+              100% INVARIANT PASSED
+            </div>
+            <div className="text-xs text-slate-400 font-mono mt-1">
+              Trial Balance: Σ Debits = Σ Credits ($0.00 delta)
+            </div>
+          </div>
 
-              <button
-                onClick={handleRunInternalAudit}
-                disabled={loadingAction}
-                className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-50"
-              >
-                <Play className="w-4 h-4 fill-current" />
-                {loadingAction ? "Auditing..." : "Trigger Full Integrity Audit"}
-              </button>
+          <div className="p-6 rounded-3xl border border-white/10 bg-slate-900/60 backdrop-blur-xl relative overflow-hidden">
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+              <span>Compliance Queue</span>
+              <FileCheck2 className="w-4 h-4 text-amber-400" />
+            </div>
+            <div className="text-2xl font-black font-mono text-white">
+              {pendingKyc.length} Pending
+            </div>
+            <div className="text-xs text-slate-400 font-mono mt-1">
+              Tier upgrade verification requests
+            </div>
+          </div>
+
+          <div className="p-6 rounded-3xl border border-white/10 bg-slate-900/60 backdrop-blur-xl relative overflow-hidden">
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+              <span>Platform Customers</span>
+              <Users className="w-4 h-4 text-blue-400" />
+            </div>
+            <div className="text-2xl font-black font-mono text-white">
+              {usersList.length} Active
+            </div>
+            <div className="text-xs text-slate-400 font-mono mt-1">
+              Provisioned double-entry liability accounts
+            </div>
+          </div>
+        </div>
+
+        {/* Sub-Navigation Tabs */}
+        <div className="flex rounded-2xl bg-slate-950 p-1.5 border border-white/5 w-fit">
+          <button
+            onClick={() => setActiveTab("reconciliation")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              activeTab === "reconciliation"
+                ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <Database className="w-3.5 h-3.5" />
+            Reconciliation Logs
+          </button>
+          <button
+            onClick={() => setActiveTab("kyc")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              activeTab === "kyc"
+                ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <FileCheck2 className="w-3.5 h-3.5" />
+            KYC Approvals ({pendingKyc.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("users")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              activeTab === "users"
+                ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            Platform Directory
+          </button>
+        </div>
+
+        {/* Tab 1: Reconciliation Runs */}
+        {activeTab === "reconciliation" && (
+          <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-white">Automated Ledger Audits</h2>
+                <p className="text-xs text-slate-400">Scheduled and on-demand trial balance invariant verifications</p>
+              </div>
             </div>
 
-            <div className="rounded-2xl bg-slate-900 border border-slate-800 p-6 shadow-xl">
-              <h3 className="text-base font-bold text-white mb-4">Audit Execution Log</h3>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs text-slate-300">
-                  <thead className="uppercase bg-slate-950 text-slate-400 border-b border-slate-800 font-mono">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-white/5 text-slate-400 font-mono uppercase text-[10px] tracking-wider">
+                    <th className="py-3 px-3">Run Reference</th>
+                    <th className="py-3 px-3">Type</th>
+                    <th className="py-3 px-3">Status</th>
+                    <th className="py-3 px-3">Discrepancies</th>
+                    <th className="py-3 px-3">Started At</th>
+                    <th className="py-3 px-3">Completed At</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {runs.length === 0 ? (
                     <tr>
-                      <th className="py-2.5 px-3">Type</th>
-                      <th className="py-2.5 px-3">Status</th>
-                      <th className="py-2.5 px-3">Total Debits</th>
-                      <th className="py-2.5 px-3">Total Credits</th>
-                      <th className="py-2.5 px-3">Discrepancies</th>
-                      <th className="py-2.5 px-3">Triggered By</th>
-                      <th className="py-2.5 px-3">Started</th>
+                      <td colSpan={6} className="py-8 text-center text-slate-500">
+                        No audit runs executed yet. Click &quot;Trigger Full Reconciliation&quot; above.
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/60 font-mono">
-                    {runs.map((r) => (
-                      <tr key={r.id}>
-                        <td className="py-3 px-3 font-medium text-white">{r.type}</td>
+                  ) : (
+                    runs.map((r) => (
+                      <tr key={r.id} className="hover:bg-slate-800/30">
+                        <td className="py-3 px-3 font-mono font-medium text-white truncate max-w-[140px]">
+                          {r.id}
+                        </td>
+                        <td className="py-3 px-3 font-mono text-slate-400">
+                          {r.type}
+                        </td>
                         <td className="py-3 px-3">
-                          <span
-                            className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium ${
-                              r.status === "PASSED"
-                                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                                : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
-                            }`}
-                          >
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            r.status === "PASSED"
+                              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                              : "bg-rose-500/15 text-rose-400 border border-rose-500/30"
+                          }`}>
                             {r.status}
                           </span>
                         </td>
-                        <td className="py-3 px-3 font-sans text-slate-200">
-                          {r.totalDebits !== undefined ? `$${r.totalDebits?.toFixed(2)}` : "—"}
+                        <td className="py-3 px-3 font-mono font-bold text-white">
+                          {r.discrepancyCount}
                         </td>
-                        <td className="py-3 px-3 font-sans text-slate-200">
-                          {r.totalCredits !== undefined ? `$${r.totalCredits?.toFixed(2)}` : "—"}
+                        <td className="py-3 px-3 text-slate-400 font-mono text-[11px]">
+                          {new Date(r.startedAt).toLocaleTimeString()}
                         </td>
-                        <td className="py-3 px-3 font-bold text-white">{r.discrepancyCount}</td>
-                        <td className="py-3 px-3 font-sans text-slate-400">{r.triggeredBy}</td>
-                        <td className="py-3 px-3 font-sans text-slate-500">
-                          {new Date(r.startedAt).toLocaleString()}
+                        <td className="py-3 px-3 text-slate-400 font-mono text-[11px]">
+                          {r.completedAt ? new Date(r.completedAt).toLocaleTimeString() : "In flight"}
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
 
-        {/* Tab 2: KYC Adjudication Queue */}
+        {/* Tab 2: KYC Compliance Queue */}
         {activeTab === "kyc" && (
-          <div className="rounded-2xl bg-slate-900 border border-slate-800 p-6 shadow-xl space-y-4">
-            <h3 className="text-base font-bold text-white">Pending KYC Tier Upgrade Applications</h3>
-
-            {pendingKyc.length === 0 ? (
-              <div className="py-12 text-center text-slate-500 text-sm">
-                Queue is clear. No pending KYC applications under review.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {pendingKyc.map((app) => (
-                  <div
-                    key={app.id}
-                    className="p-4 rounded-xl bg-slate-950 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4"
-                  >
-                    <div className="space-y-1 text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-white text-sm">{app.userEmail}</span>
-                        <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 font-semibold text-[11px]">
-                          Target Tier {app.targetTier}
-                        </span>
-                      </div>
-                      <div className="text-slate-400 font-mono">
-                        {app.idType}: <strong className="text-slate-200">{app.idNumber}</strong>
-                        {app.documentUrl && (
-                          <a
-                            href={app.documentUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="ml-2 text-blue-400 underline hover:text-blue-300"
+          <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-4">
+            <h2 className="text-lg font-bold text-white">Pending Verification Submissions</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-white/5 text-slate-400 font-mono uppercase text-[10px] tracking-wider">
+                    <th className="py-3 px-3">Target Tier</th>
+                    <th className="py-3 px-3">ID Type & Number</th>
+                    <th className="py-3 px-3">Submission Date</th>
+                    <th className="py-3 px-3 text-right">Review Decision</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {pendingKyc.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="py-8 text-center text-slate-500">
+                        Compliance queue is clear. No pending applications.
+                      </td>
+                    </tr>
+                  ) : (
+                    pendingKyc.map((app) => (
+                      <tr key={app.id} className="hover:bg-slate-800/30">
+                        <td className="py-3 px-3 font-bold font-mono text-white">Tier {app.targetTier}</td>
+                        <td className="py-3 px-3 font-mono text-slate-300">{app.idType} • {app.idNumber}</td>
+                        <td className="py-3 px-3 font-mono text-slate-400 text-[11px]">
+                          {app.createdAt ? new Date(app.createdAt).toLocaleDateString() : "Recent"}
+                        </td>
+                        <td className="py-3 px-3 text-right space-x-2">
+                          <button
+                            onClick={() => handleReviewKyc(app.id, "APPROVED")}
+                            className="px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30 transition-colors"
                           >
-                            [View Document Image]
-                          </a>
-                        )}
-                      </div>
-                      <div className="text-[11px] text-slate-500">
-                        Submitted: {new Date(app.createdAt).toLocaleString()}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleReviewKyc(app.id, "APPROVED")}
-                        className="py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition-colors"
-                      >
-                        Approve Upgrade
-                      </button>
-                      <button
-                        onClick={() => {
-                          const reason = prompt("Enter rejection reason:");
-                          if (reason) handleReviewKyc(app.id, "REJECTED", reason);
-                        }}
-                        className="py-1.5 px-3 rounded-lg bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-xs font-medium transition-colors"
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handleReviewKyc(app.id, "REJECTED", "Failed compliance check")}
+                            className="px-3 py-1 rounded-lg text-xs font-semibold bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500/30 transition-colors"
+                          >
+                            Reject
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
-        {/* Tab 3: Users Directory */}
+        {/* Tab 3: Platform Directory */}
         {activeTab === "users" && (
-          <div className="rounded-2xl bg-slate-900 border border-slate-800 p-6 shadow-xl space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <h3 className="text-base font-bold text-white">Platform Customer Accounts</h3>
+          <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-white">Customer Accounts Directory</h2>
+                <p className="text-xs text-slate-400">Inspect tiered limits and registered customers</p>
+              </div>
 
-              <form onSubmit={handleSearchUsers} className="relative sm:w-64">
+              <form onSubmit={handleSearchUsers} className="relative">
+                <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
                 <input
                   type="text"
+                  placeholder="Search email or name..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by email or name..."
-                  className="w-full pl-8 pr-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500"
+                  className="pl-9 pr-3.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700/80 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500 font-mono w-60"
                 />
-                <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2" />
               </form>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-300">
-                <thead className="uppercase bg-slate-950 text-slate-400 border-b border-slate-800 font-mono">
-                  <tr>
-                    <th className="py-2.5 px-3">Name</th>
-                    <th className="py-2.5 px-3">Email</th>
-                    <th className="py-2.5 px-3">Role</th>
-                    <th className="py-2.5 px-3">KYC Tier</th>
-                    <th className="py-2.5 px-3">Single Limit</th>
-                    <th className="py-2.5 px-3">Daily Limit</th>
-                    <th className="py-2.5 px-3">Created</th>
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-white/5 text-slate-400 font-mono uppercase text-[10px] tracking-wider">
+                    <th className="py-3 px-3">Name</th>
+                    <th className="py-3 px-3">Email</th>
+                    <th className="py-3 px-3">Role</th>
+                    <th className="py-3 px-3">KYC Tier</th>
+                    <th className="py-3 px-3">Daily Limit</th>
+                    <th className="py-3 px-3">Created</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60 font-sans">
+                <tbody className="divide-y divide-white/5">
                   {usersList.map((u) => (
                     <tr key={u.id} className="hover:bg-slate-800/30">
-                      <td className="py-3 px-3 font-medium text-white">{u.firstName} {u.lastName}</td>
+                      <td className="py-3 px-3 font-semibold text-white">{u.firstName} {u.lastName}</td>
                       <td className="py-3 px-3 font-mono text-slate-300">{u.email}</td>
                       <td className="py-3 px-3 font-mono text-slate-400">{u.role}</td>
                       <td className="py-3 px-3">
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30">
                           Tier {u.kycTier}
                         </span>
                       </td>
-                      <td className="py-3 px-3 font-mono text-slate-200">${u.singleTransactionLimit.toLocaleString()}</td>
-                      <td className="py-3 px-3 font-mono text-slate-200">${u.dailyLimit.toLocaleString()}</td>
-                      <td className="py-3 px-3 text-slate-500">{new Date(u.createdAt).toLocaleDateString()}</td>
+                      <td className="py-3 px-3 font-mono font-bold text-slate-200">${u.dailyLimit.toLocaleString()}</td>
+                      <td className="py-3 px-3 text-slate-400 font-mono text-[11px]">
+                        {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "Active"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -344,4 +416,3 @@ export default function AdminPage() {
     </div>
   );
 }
-

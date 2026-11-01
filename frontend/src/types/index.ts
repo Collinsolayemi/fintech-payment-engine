@@ -27,9 +27,11 @@ export interface UserProfile {
   country?: string;
   postalCode?: string;
   dateOfBirth?: string;
+  createdAt?: string;
 }
 
 export interface AccountBalance {
+  id?: string;
   accountId: string;
   accountNumber: string;
   accountName: string;
@@ -60,6 +62,16 @@ export interface TransferResponse {
   status: "PENDING" | "COMPLETED" | "FAILED" | "REVERSED";
   description: string;
   createdAt: string;
+}
+
+export interface TransactionRecord {
+  id?: string;
+  reference: string;
+  description?: string;
+  status?: string;
+  amount: number | string;
+  currency?: string;
+  createdAt?: string;
 }
 
 export interface PayoutResponse {
