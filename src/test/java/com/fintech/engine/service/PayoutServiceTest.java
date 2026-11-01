@@ -45,6 +45,9 @@ class PayoutServiceTest {
     @Mock
     private LedgerService ledgerService;
 
+    @Mock
+    private KycLimitService kycLimitService;
+
     private PayoutServiceImpl payoutService;
 
     private UUID userId;
@@ -65,7 +68,8 @@ class PayoutServiceTest {
                 payoutRepository,
                 accountRepository,
                 userRepository,
-                ledgerService
+                ledgerService,
+                kycLimitService
         );
         ReflectionTestUtils.setField(payoutService, "flatPayoutFee", new BigDecimal("2.00"));
 

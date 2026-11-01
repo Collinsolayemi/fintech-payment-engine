@@ -51,6 +51,9 @@ class TransferServiceTest {
     @Mock
     private LedgerService ledgerService;
 
+    @Mock
+    private KycLimitService kycLimitService;
+
     private TransferServiceImpl transferService;
 
     private UUID senderId;
@@ -62,7 +65,7 @@ class TransferServiceTest {
 
     @BeforeEach
     void setUp() {
-        transferService = new TransferServiceImpl(accountRepository, transactionRepository, ledgerEntryRepository, ledgerService);
+        transferService = new TransferServiceImpl(accountRepository, transactionRepository, ledgerEntryRepository, ledgerService, kycLimitService);
 
         senderId = UUID.fromString("11111111-1111-1111-1111-111111111111");
         recipientId = UUID.fromString("22222222-2222-2222-2222-222222222222");
