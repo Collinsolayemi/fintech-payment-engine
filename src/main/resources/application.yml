@@ -52,4 +52,9 @@ fintech:
       secret: ${FLUTTERWAVE_WEBHOOK_SECRET:whsec_test_flutterwave_secret_key_12345}
   payouts:
     flat-fee: 2.00
+  reconciliation:
+    scheduler:
+      enabled: ${RECONCILIATION_SCHEDULER_ENABLED:true}
+      # Spring cron (sec min hour day month weekday), evaluated in UTC. Default: top of every hour.
+      internal-cron: "${RECONCILIATION_INTERNAL_CRON:0 0 * * * *}"
 
