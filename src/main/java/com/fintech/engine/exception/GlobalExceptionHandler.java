@@ -2,6 +2,7 @@ package com.fintech.engine.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -181,6 +182,40 @@ public class GlobalExceptionHandler {
         problem.setTitle("Illegal Payout State");
         problem.setType(URI.create("https://api.fintech.example.com/errors/illegal-payout-state"));
         problem.setProperty("code", ex.getErrorCode());
+        problem.setProperty("timestamp", OffsetDateTime.now());
+        return problem;
+    }
+
+    @ExceptionHandler(ReconciliationRunNotFoundException.class)
+    public ProblemDetail handleReconciliationRunNotFound(ReconciliationRunNotFoundException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        problem.setTitle("Reconciliation Run Not Found");
+        problem.setType(URI.create("https://api.fintech.example.com/errors/reconciliation-run-not-found"));
+        problem.setProperty("code", ex.getErrorCode());
+        problem.setProperty("timestamp", OffsetDateTime.now());
+        return problem;
+    }
+
+    @ExceptionHandler(InvalidReconciliationRequestException.class)
+    public ProblemDetail handleInvalidReconciliationRequest(InvalidReconciliationRequestException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        problem.setTitle("Invalid Reconciliation Request");
+        problem.setType(URI.create("https://api.fintech.example.com/errors/invalid-reconciliation-request"));
+        problem.setProperty("code", ex.getErrorCode());
+        problem.setProperty("timestamp", OffsetDateTime.now());
+        return problem;
+    }
+
+    /**
+     * Method-security denials (e.g. @PreAuthorize) are raised inside the controller, so without this
+     * handler they would fall through to the generic handler below and surface as 500.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ProblemDetail handleAccessDenied(AccessDeniedException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, "You do not have permission to access this resource");
+        problem.setTitle("Forbidden");
+        problem.setType(URI.create("https://api.fintech.example.com/errors/forbidden"));
+        problem.setProperty("code", "ACCESS_DENIED");
         problem.setProperty("timestamp", OffsetDateTime.now());
         return problem;
     }
