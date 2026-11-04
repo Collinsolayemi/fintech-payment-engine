@@ -821,7 +821,216 @@ Streams an audit-grade RFC 4180 CSV export with transaction date, reference, ent
 
 ---
 
-## 9. Standard Error Format (RFC 7807 Problem Details)
+## 9. Foreign Exchange (FX) & Multi-Currency Engine
+
+### Provision Multi-Currency Wallet
+`POST /api/v1/accounts/wallet`
+
+Opens an additional currency wallet (EUR, GBP, CAD, AUD, JPY, NGN) for the authenticated customer.
+
+#### Request:
+```json
+{
+  "currency": "EUR",
+  "accountName": "Euro Business Wallet"
+}
+```
+
+#### Response: `201 Created`
+```json
+{
+  "accountId": "7bf361c7-c533-4f96-b072-cb07817eb6a3",
+  "accountNumber": "EUR-48201948",
+  "accountName": "Euro Business Wallet",
+  "accountType": "LIABILITY",
+  "currency": "EUR",
+  "status": "ACTIVE",
+  "balance": 0.00,
+  "totalDebits": 0.00,
+  "totalCredits": 0.00
+}
+```
+
+---
+
+### Get Live FX Rates
+`GET /api/v1/fx/rates?base=USD`
+
+Retrieves interbank market reference rates and inverse conversion multipliers.
+
+#### Response: `200 OK`
+```json
+[
+  {
+    "sourceCurrency": "USD",
+    "targetCurrency": "EUR",
+    "rate": 0.925000,
+    "inverseRate": 1.081081,
+    "timestamp": "2026-11-04T14:30:00Z"
+  }
+]
+```
+
+---
+
+### Request Guaranteed FX Quote
+`POST /api/v1/fx/quote`
+
+Locks in a guaranteed conversion rate with an institutional spread for 60 seconds.
+
+#### Request:
+```json
+{
+  "sourceCurrency": "USD",
+  "targetCurrency": "EUR",
+  "sourceAmount": 100.00
+}
+```
+
+#### Response: `201 Created`
+```json
+{
+  "quoteId": "9a281f47-805f-48f3-9ddb-62cc5f865584",
+  "sourceCurrency": "USD",
+  "targetCurrency": "EUR",
+  "sourceAmount": 100.00,
+  "targetAmount": 92.18,
+  "exchangeRate": 0.921763,
+  "fee": 0.50,
+  "expiresInSeconds": 60,
+  "expiresAt": "2026-11-04T14:31:00Z"
+}
+```
+
+---
+
+### Execute Currency Exchange
+`POST /api/v1/fx/execute`
+
+Executes balanced double-entry conversion across multi-currency clearing accounts and user wallets.
+
+#### Headers:
+- `Authorization: Bearer <JWT_TOKEN>`
+- `Idempotency-Key: <UUIDv4>`
+
+#### Request:
+```json
+{
+  "quoteId": "9a281f47-805f-48f3-9ddb-62cc5f865584",
+  "sourceAccountId": "a3b9f42b-5861-4685-b9f4-2c6d48259b12",
+  "targetAccountId": "7bf361c7-c533-4f96-b072-cb07817eb6a3"
+}
+```
+
+#### Response: `200 OK`
+```json
+{
+  "transactionReference": "FX-20261104-741296",
+  "sourceAccountId": "a3b9f42b-5861-4685-b9f4-2c6d48259b12",
+  "targetAccountId": "7bf361c7-c533-4f96-b072-cb07817eb6a3",
+  "sourceAmount": 100.00,
+  "targetAmount": 92.18,
+  "sourceCurrency": "USD",
+  "targetCurrency": "EUR",
+  "exchangeRate": 0.921763,
+  "fee": 0.50,
+  "executedAt": "2026-11-04T14:30:15Z"
+}
+```
+
+---
+
+## 10. Virtual Cards Issuing & Management Engine
+
+### Issue Virtual Debit Card
+`POST /api/v1/cards/issue`
+
+Provisions a virtual Visa or Mastercard debit card linked to any active user wallet.
+
+#### Request:
+```json
+{
+  "accountId": "a3b9f42b-5861-4685-b9f4-2c6d48259b12",
+  "cardholderName": "Alex Morgan",
+  "cardBrand": "VISA",
+  "monthlyLimit": 5000.00
+}
+```
+
+#### Response: `201 Created`
+```json
+{
+  "id": "63c6e802-ea26-4d8f-84a9-1025740afc4b",
+  "accountId": "a3b9f42b-5861-4685-b9f4-2c6d48259b12",
+  "accountNumber": "USD-11223344",
+  "currency": "USD",
+  "cardholderName": "Alex Morgan",
+  "maskedCardNumber": "•••• •••• •••• 4709",
+  "lastFour": "4709",
+  "expiryMonth": 11,
+  "expiryYear": 2029,
+  "status": "ACTIVE",
+  "cardBrand": "VISA",
+  "cardType": "VIRTUAL_DEBIT",
+  "monthlyLimit": 5000.00,
+  "onlinePaymentsEnabled": true,
+  "internationalEnabled": true,
+  "createdAt": "2026-11-04T14:30:00Z"
+}
+```
+
+---
+
+### Reveal Sensitive Card Details
+`GET /api/v1/cards/{cardId}/details`
+
+Securely reveals full 16-digit PAN and CVV. Requires authenticated cardholder session.
+
+#### Response: `200 OK`
+```json
+{
+  "id": "63c6e802-ea26-4d8f-84a9-1025740afc4b",
+  "cardNumber": "4532890123454709",
+  "cvv": "682",
+  "expiryMonth": 11,
+  "expiryYear": 2029,
+  "cardholderName": "Alex Morgan"
+}
+```
+
+---
+
+### Update Card Freeze Status
+`PATCH /api/v1/cards/{cardId}/status`
+
+Instantly freezes or unfreezes card.
+
+#### Request:
+```json
+{
+  "status": "FROZEN"
+}
+```
+
+---
+
+### Update Card Controls & Spending Limits
+`PATCH /api/v1/cards/{cardId}/controls`
+
+Configures monthly limits, e-commerce switches, and international transaction flags.
+
+#### Request:
+```json
+{
+  "monthlyLimit": 2500.00,
+  "onlinePaymentsEnabled": true,
+  "internationalEnabled": false
+}
+```
+
+---
+
+## 11. Standard Error Format (RFC 7807 Problem Details)
 
 All error responses return a standard structured payload:
 

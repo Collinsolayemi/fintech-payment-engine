@@ -132,3 +132,64 @@ export interface ReconciliationRun {
   }>;
 }
 
+export interface FxRate {
+  sourceCurrency: string;
+  targetCurrency: string;
+  rate: number;
+  inverseRate: number;
+  timestamp: string;
+}
+
+export interface FxQuote {
+  quoteId: string;
+  sourceCurrency: string;
+  targetCurrency: string;
+  sourceAmount: number;
+  targetAmount: number;
+  exchangeRate: number;
+  fee: number;
+  expiresInSeconds: number;
+  expiresAt: string;
+}
+
+export interface FxExchangeResult {
+  transactionReference: string;
+  sourceAccountId: string;
+  targetAccountId: string;
+  sourceAmount: number;
+  targetAmount: number;
+  sourceCurrency: string;
+  targetCurrency: string;
+  exchangeRate: number;
+  fee: number;
+  executedAt: string;
+}
+
+export interface VirtualCard {
+  id: string;
+  accountId: string;
+  accountNumber: string;
+  currency: string;
+  cardholderName: string;
+  maskedCardNumber: string;
+  lastFour: string;
+  expiryMonth: number;
+  expiryYear: number;
+  status: "ACTIVE" | "FROZEN" | "CANCELLED";
+  cardBrand: "VISA" | "MASTERCARD";
+  cardType: string;
+  monthlyLimit: number;
+  onlinePaymentsEnabled: boolean;
+  internationalEnabled: boolean;
+  createdAt: string;
+}
+
+export interface CardDetails {
+  id: string;
+  cardNumber: string;
+  cvv: string;
+  expiryMonth: number;
+  expiryYear: number;
+  cardholderName: string;
+}
+

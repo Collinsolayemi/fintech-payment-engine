@@ -13,7 +13,9 @@ import {
   ShieldAlert,
   Activity,
   Menu,
-  X
+  X,
+  CreditCard,
+  Globe2
 } from "lucide-react";
 import { useState } from "react";
 
@@ -29,6 +31,8 @@ export function Navbar() {
   const navLinks = [
     { href: "/dashboard", label: "Wallets", icon: Wallet },
     { href: "/transfers", label: "P2P Transfers", icon: ArrowLeftRight },
+    { href: "/exchange", label: "FX Swap", icon: Globe2 },
+    { href: "/cards", label: "Cards", icon: CreditCard },
     { href: "/payouts", label: "Bank Payouts", icon: Landmark },
     { href: "/kyc", label: "KYC Center", icon: FileCheck2 },
     ...(isAdmin ? [{ href: "/admin", label: "Admin & Ledger", icon: ShieldAlert }] : []),

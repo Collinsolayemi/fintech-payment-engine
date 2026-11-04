@@ -221,7 +221,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Action Navigation Buttons */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
           <button
             onClick={() => setDepositModalOpen(true)}
             className="p-4 rounded-2xl border border-white/10 bg-gradient-to-br from-blue-900/40 via-slate-900/80 to-slate-900/80 hover:border-blue-500/50 hover:from-blue-900/60 transition-all group shadow-lg shadow-blue-950/20 text-left"
@@ -230,7 +230,7 @@ export default function DashboardPage() {
               <PlusCircle className="w-5 h-5" />
             </div>
             <div className="font-bold text-sm text-white group-hover:text-blue-400 transition-colors">Fund Wallet</div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Instant ledger clearing deposit</div>
+            <div className="text-[11px] text-slate-400 mt-0.5">Instant top-up deposit</div>
           </button>
 
           <Link
@@ -241,7 +241,29 @@ export default function DashboardPage() {
               <ArrowLeftRight className="w-5 h-5" />
             </div>
             <div className="font-bold text-sm text-white group-hover:text-indigo-400 transition-colors">P2P Transfer</div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Instant zero-fee internal transfer</div>
+            <div className="text-[11px] text-slate-400 mt-0.5">Instant zero-fee transfer</div>
+          </Link>
+
+          <Link
+            href="/exchange"
+            className="p-4 rounded-2xl border border-white/10 bg-gradient-to-br from-cyan-900/30 via-slate-900/80 to-slate-900/80 hover:border-cyan-500/40 hover:from-cyan-900/50 transition-all group shadow-lg shadow-cyan-950/20"
+          >
+            <div className="h-10 w-10 rounded-xl bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+              <ArrowRight className="w-5 h-5" />
+            </div>
+            <div className="font-bold text-sm text-white group-hover:text-cyan-400 transition-colors">FX Swap</div>
+            <div className="text-[11px] text-slate-400 mt-0.5">Interbank rate exchange</div>
+          </Link>
+
+          <Link
+            href="/cards"
+            className="p-4 rounded-2xl border border-white/10 bg-gradient-to-br from-purple-900/30 via-slate-900/80 to-slate-900/80 hover:border-purple-500/40 hover:from-purple-900/50 transition-all group shadow-lg shadow-purple-950/20"
+          >
+            <div className="h-10 w-10 rounded-xl bg-purple-600/20 text-purple-400 border border-purple-500/30 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+              <CreditCard className="w-5 h-5" />
+            </div>
+            <div className="font-bold text-sm text-white group-hover:text-purple-400 transition-colors">Virtual Cards</div>
+            <div className="text-[11px] text-slate-400 mt-0.5">Debit controls & limits</div>
           </Link>
 
           <Link
@@ -252,7 +274,7 @@ export default function DashboardPage() {
               <Landmark className="w-5 h-5" />
             </div>
             <div className="font-bold text-sm text-white group-hover:text-emerald-400 transition-colors">Bank Payout</div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Withdraw funds to external bank</div>
+            <div className="text-[11px] text-slate-400 mt-0.5">Withdraw to external bank</div>
           </Link>
 
           <Link
