@@ -17,3 +17,4 @@ public record DepositRequest(
 
     String description
 ) {}
+

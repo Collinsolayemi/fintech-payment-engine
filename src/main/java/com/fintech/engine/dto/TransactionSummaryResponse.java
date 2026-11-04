@@ -17,3 +17,4 @@ public record TransactionSummaryResponse(
     String accountNumber,
     OffsetDateTime createdAt
 ) {}
+

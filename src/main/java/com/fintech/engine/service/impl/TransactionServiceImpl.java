@@ -2,6 +2,7 @@ package com.fintech.engine.service.impl;
 
 import com.fintech.engine.dto.*;
 import com.fintech.engine.exception.*;
+import com.fintech.engine.exception.InvalidAmountException;
 import com.fintech.engine.model.entity.Account;
 import com.fintech.engine.model.entity.LedgerEntry;
 import com.fintech.engine.model.entity.Transaction;
@@ -185,6 +186,9 @@ public class TransactionServiceImpl implements TransactionService {
         String description = request.description() != null && !request.description().isBlank()
                 ? request.description()
                 : "Wallet top-up deposit";
+
+        log.info("Processing wallet deposit: reference={}, destinationAccount={}, amount={} {}",
+                reference, destinationAccount.getAccountNumber(), amount, currency);
 
         List<LedgerEntryCommand> entries = List.of(
                 new LedgerEntryCommand(clearingAccount.getId(), EntryType.DEBIT, amount),

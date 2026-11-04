@@ -4,14 +4,12 @@ import com.fintech.engine.dto.DepositRequest;
 import com.fintech.engine.dto.LedgerPostingRequest;
 import com.fintech.engine.dto.TransactionResponse;
 import com.fintech.engine.dto.TransactionSummaryResponse;
-import com.fintech.engine.exception.AccountNotFoundException;
 import com.fintech.engine.exception.TransactionNotFoundException;
 import com.fintech.engine.exception.UserNotFoundException;
 import com.fintech.engine.model.entity.Account;
 import com.fintech.engine.model.entity.LedgerEntry;
 import com.fintech.engine.model.entity.Transaction;
 import com.fintech.engine.model.entity.User;
-import com.fintech.engine.model.enums.AccountStatus;
 import com.fintech.engine.model.enums.AccountType;
 import com.fintech.engine.model.enums.EntryType;
 import com.fintech.engine.model.enums.TransactionStatus;
@@ -212,3 +210,4 @@ class TransactionServiceTest {
         }));
     }
 }
+

@@ -24,3 +24,4 @@ public interface TransactionService {
 
     TransactionResponse deposit(DepositRequest request, String idempotencyKey, String authenticatedEmail);
 }
+

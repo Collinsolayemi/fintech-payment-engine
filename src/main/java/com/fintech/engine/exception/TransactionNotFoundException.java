@@ -11,3 +11,4 @@ public class TransactionNotFoundException extends FintechException {
         super("Transaction not found with ID: " + id, "TRANSACTION_NOT_FOUND");
     }
 }
+
