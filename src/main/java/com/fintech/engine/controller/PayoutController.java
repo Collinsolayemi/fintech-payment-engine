@@ -60,7 +60,7 @@ public class PayoutController {
     @ApiResponse(responseCode = "200", description = "Payout initiated and held in escrow")
     @ApiResponse(responseCode = "400", description = "Insufficient funds or invalid bank destination")
     @ApiResponse(responseCode = "403", description = "User does not own the source wallet")
-    @PostMapping
+    @PostMapping({"", "/initiate"})
     public ResponseEntity<PayoutResponse> initiatePayout(
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             @Valid @RequestBody InitiatePayoutRequest request,
@@ -108,7 +108,7 @@ public class PayoutController {
 
     @Operation(summary = "List Current User Payouts", description = "Retrieves all withdrawal requests for the authenticated customer")
     @ApiResponse(responseCode = "200", description = "Payout history returned")
-    @GetMapping("/me")
+    @GetMapping({"/me", "/my-payouts"})
     public ResponseEntity<List<PayoutResponse>> getMyPayouts(Authentication authentication) {
         User user = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new UserNotFoundException("User not found"));

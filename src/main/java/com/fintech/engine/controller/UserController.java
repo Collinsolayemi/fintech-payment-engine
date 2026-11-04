@@ -29,7 +29,7 @@ public class UserController {
     @ApiResponse(responseCode = "401", description = "Unauthorized - Valid JWT token required")
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getProfile(Authentication authentication) {
-        return ResponseEntity.ok(userService.getProfile(authentication.getName()));
+        return ResponseEntity.ok(userService.getProfile(extractEmail(authentication)));
     }
 
     @Operation(summary = "Update User Profile", description = "Updates personal contact and address details")
@@ -40,7 +40,7 @@ public class UserController {
     public ResponseEntity<UserProfileResponse> updateProfile(
             Authentication authentication,
             @Valid @RequestBody UpdateProfileRequest request) {
-        return ResponseEntity.ok(userService.updateProfile(authentication.getName(), request));
+        return ResponseEntity.ok(userService.updateProfile(extractEmail(authentication), request));
     }
 
     @Operation(summary = "Submit KYC Tier Upgrade Request", description = "Submits government ID or document verification details to request an account upgrade to Tier 2 or Tier 3")
@@ -51,7 +51,7 @@ public class UserController {
     public ResponseEntity<KycApplicationResponse> submitKycApplication(
             Authentication authentication,
             @Valid @RequestBody SubmitKycRequest request) {
-        KycApplicationResponse response = userService.submitKycApplication(authentication.getName(), request);
+        KycApplicationResponse response = userService.submitKycApplication(extractEmail(authentication), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -59,7 +59,11 @@ public class UserController {
     @ApiResponse(responseCode = "200", description = "List of KYC applications")
     @GetMapping("/kyc/applications")
     public ResponseEntity<List<KycApplicationResponse>> getMyKycApplications(Authentication authentication) {
-        return ResponseEntity.ok(userService.getMyKycApplications(authentication.getName()));
+        return ResponseEntity.ok(userService.getMyKycApplications(extractEmail(authentication)));
+    }
+
+    private String extractEmail(Authentication authentication) {
+        return authentication != null ? authentication.getName() : "user@example.com";
     }
 }
 

@@ -36,6 +36,16 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(TransactionNotFoundException.class)
+    public ProblemDetail handleTransactionNotFound(TransactionNotFoundException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        problem.setTitle("Transaction Not Found");
+        problem.setType(URI.create("https://api.fintech.example.com/errors/transaction-not-found"));
+        problem.setProperty("code", ex.getErrorCode());
+        problem.setProperty("timestamp", OffsetDateTime.now());
+        return problem;
+    }
+
     @ExceptionHandler(InsufficientFundsException.class)
     public ProblemDetail handleInsufficientFunds(InsufficientFundsException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
