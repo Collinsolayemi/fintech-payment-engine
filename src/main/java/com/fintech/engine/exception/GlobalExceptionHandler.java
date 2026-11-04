@@ -290,6 +290,46 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(FxQuoteNotFoundException.class)
+    public ProblemDetail handleFxQuoteNotFound(FxQuoteNotFoundException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        problem.setTitle("FX Quote Not Found");
+        problem.setType(URI.create("https://api.fintech.example.com/errors/fx-quote-not-found"));
+        problem.setProperty("code", ex.getErrorCode());
+        problem.setProperty("timestamp", OffsetDateTime.now());
+        return problem;
+    }
+
+    @ExceptionHandler(FxQuoteExpiredException.class)
+    public ProblemDetail handleFxQuoteExpired(FxQuoteExpiredException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.GONE, ex.getMessage());
+        problem.setTitle("FX Quote Expired");
+        problem.setType(URI.create("https://api.fintech.example.com/errors/fx-quote-expired"));
+        problem.setProperty("code", ex.getErrorCode());
+        problem.setProperty("timestamp", OffsetDateTime.now());
+        return problem;
+    }
+
+    @ExceptionHandler(VirtualCardNotFoundException.class)
+    public ProblemDetail handleVirtualCardNotFound(VirtualCardNotFoundException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        problem.setTitle("Virtual Card Not Found");
+        problem.setType(URI.create("https://api.fintech.example.com/errors/virtual-card-not-found"));
+        problem.setProperty("code", ex.getErrorCode());
+        problem.setProperty("timestamp", OffsetDateTime.now());
+        return problem;
+    }
+
+    @ExceptionHandler(DuplicateWalletException.class)
+    public ProblemDetail handleDuplicateWallet(DuplicateWalletException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setTitle("Duplicate Wallet");
+        problem.setType(URI.create("https://api.fintech.example.com/errors/duplicate-wallet"));
+        problem.setProperty("code", ex.getErrorCode());
+        problem.setProperty("timestamp", OffsetDateTime.now());
+        return problem;
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ProblemDetail handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
