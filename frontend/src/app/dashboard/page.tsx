@@ -25,7 +25,10 @@ import {
   Search,
   Filter,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  PlusCircle,
+  Download,
+  X
 } from "lucide-react";
 import Link from "next/link";
 
@@ -41,6 +44,10 @@ export default function DashboardPage() {
   const [showCardDetails, setShowCardDetails] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<"ALL" | "TRANSFER" | "PAYOUT" | "DEPOSIT">("ALL");
+  const [depositModalOpen, setDepositModalOpen] = useState(false);
+  const [depositAmount, setDepositAmount] = useState("100");
+  const [depositing, setDepositing] = useState(false);
+  const [depositSuccess, setDepositSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -78,6 +85,55 @@ export default function DashboardPage() {
     navigator.clipboard.writeText(text);
     setCopied(text);
     setTimeout(() => setCopied(null), 2000);
+  };
+
+  const handleDeposit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const targetAccount = accounts[selectedAccountIdx] || accounts[0];
+    if (!targetAccount?.id && !targetAccount?.accountId) return;
+    const accId = targetAccount.id || targetAccount.accountId;
+
+    setDepositing(true);
+    setDepositSuccess(null);
+    try {
+      const res = await api.post("/transactions/deposit", {
+        accountId: accId,
+        amount: parseFloat(depositAmount),
+        currency: targetAccount.currency || "USD",
+        description: "Direct wallet top-up"
+      });
+      setDepositSuccess(`Deposited $${parseFloat(depositAmount).toFixed(2)} successfully!`);
+      setTimeout(() => {
+        setDepositModalOpen(false);
+        setDepositSuccess(null);
+      }, 1200);
+      loadData();
+    } catch (err: any) {
+      console.error("Deposit failed", err);
+    } finally {
+      setDepositing(false);
+    }
+  };
+
+  const handleExportStatement = async () => {
+    const targetAccount = accounts[selectedAccountIdx] || accounts[0];
+    const accId = targetAccount?.id || targetAccount?.accountId;
+    if (!accId) return;
+
+    try {
+      const res = await api.get(`/transactions/account/${accId}/statement`, {
+        responseType: "blob"
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `statement-${targetAccount.accountNumber || accId}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      console.error("Failed to export statement", err);
+    }
   };
 
   if (isLoading || !user) {
@@ -166,14 +222,25 @@ export default function DashboardPage() {
 
         {/* Quick Action Navigation Buttons */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-          <Link
-            href="/transfers"
-            className="p-4 rounded-2xl border border-white/10 bg-gradient-to-br from-blue-900/40 via-slate-900/80 to-slate-900/80 hover:border-blue-500/40 hover:from-blue-900/60 transition-all group shadow-lg shadow-blue-950/20"
+          <button
+            onClick={() => setDepositModalOpen(true)}
+            className="p-4 rounded-2xl border border-white/10 bg-gradient-to-br from-blue-900/40 via-slate-900/80 to-slate-900/80 hover:border-blue-500/50 hover:from-blue-900/60 transition-all group shadow-lg shadow-blue-950/20 text-left"
           >
             <div className="h-10 w-10 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+              <PlusCircle className="w-5 h-5" />
+            </div>
+            <div className="font-bold text-sm text-white group-hover:text-blue-400 transition-colors">Fund Wallet</div>
+            <div className="text-[11px] text-slate-400 mt-0.5">Instant ledger clearing deposit</div>
+          </button>
+
+          <Link
+            href="/transfers"
+            className="p-4 rounded-2xl border border-white/10 bg-gradient-to-br from-indigo-900/30 via-slate-900/80 to-slate-900/80 hover:border-indigo-500/40 hover:from-indigo-900/50 transition-all group shadow-lg shadow-indigo-950/20"
+          >
+            <div className="h-10 w-10 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
               <ArrowLeftRight className="w-5 h-5" />
             </div>
-            <div className="font-bold text-sm text-white group-hover:text-blue-400 transition-colors">P2P Transfer</div>
+            <div className="font-bold text-sm text-white group-hover:text-indigo-400 transition-colors">P2P Transfer</div>
             <div className="text-[11px] text-slate-400 mt-0.5">Instant zero-fee internal transfer</div>
           </Link>
 
@@ -190,25 +257,14 @@ export default function DashboardPage() {
 
           <Link
             href="/kyc"
-            className="p-4 rounded-2xl border border-white/10 bg-gradient-to-br from-indigo-900/30 via-slate-900/80 to-slate-900/80 hover:border-indigo-500/40 hover:from-indigo-900/50 transition-all group shadow-lg shadow-indigo-950/20"
-          >
-            <div className="h-10 w-10 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <div className="font-bold text-sm text-white group-hover:text-indigo-400 transition-colors">Upgrade Limits</div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Tier {user.kycTier} • Max ${dailyLimit.toLocaleString()}</div>
-          </Link>
-
-          <div 
-            onClick={loadData}
-            className="p-4 rounded-2xl border border-white/10 bg-gradient-to-br from-amber-900/20 via-slate-900/80 to-slate-900/80 hover:border-amber-500/40 hover:from-amber-900/40 transition-all group cursor-pointer shadow-lg shadow-amber-950/20"
+            className="p-4 rounded-2xl border border-white/10 bg-gradient-to-br from-amber-900/20 via-slate-900/80 to-slate-900/80 hover:border-amber-500/40 hover:from-amber-900/40 transition-all group shadow-lg shadow-amber-950/20"
           >
             <div className="h-10 w-10 rounded-xl bg-amber-600/20 text-amber-400 border border-amber-500/30 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-              <TrendingUp className="w-5 h-5" />
+              <ShieldCheck className="w-5 h-5" />
             </div>
-            <div className="font-bold text-sm text-white group-hover:text-amber-400 transition-colors">Ledger Audit</div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Verify double-entry postings</div>
-          </div>
+            <div className="font-bold text-sm text-white group-hover:text-amber-400 transition-colors">Upgrade Limits</div>
+            <div className="text-[11px] text-slate-400 mt-0.5">Tier {user.kycTier} • Max ${dailyLimit.toLocaleString()}</div>
+          </Link>
         </div>
 
         {/* Hero Section: Virtual Debit Card + Account Analytics */}
@@ -390,6 +446,15 @@ export default function DashboardPage() {
 
             {/* Search & Filter Controls */}
             <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={handleExportStatement}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700/80 text-xs text-slate-300 hover:text-white transition-all font-mono"
+                title="Download CSV Statement"
+              >
+                <Download className="w-3.5 h-3.5 text-blue-400" />
+                <span>Export CSV</span>
+              </button>
+
               <div className="relative">
                 <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
                 <input
@@ -491,6 +556,120 @@ export default function DashboardPage() {
             </table>
           </div>
         </div>
+
+        {/* Deposit / Fund Wallet Modal */}
+        {depositModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+            <div className="bg-slate-900 border border-white/15 rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between pb-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center">
+                    <PlusCircle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white text-base">Top-up Wallet</h3>
+                    <p className="text-xs text-slate-400">Direct ledger clearing deposit</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setDepositModalOpen(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleDeposit} className="mt-5 space-y-4">
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-1.5">
+                    Target Account
+                  </label>
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-white">{currentAccount?.accountName || "Primary Wallet"}</div>
+                      <div className="text-[11px] font-mono text-slate-400">{currentAccount?.accountNumber || currentAccount?.id}</div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded bg-blue-600/20 text-blue-300 font-mono text-[10px] font-bold">
+                      {currency}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-1.5">
+                    Amount ({currency})
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-3 text-slate-500 font-mono font-bold">$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="1.00"
+                      max="100000.00"
+                      required
+                      value={depositAmount}
+                      onChange={(e) => setDepositAmount(e.target.value)}
+                      className="w-full pl-8 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono font-bold text-lg focus:outline-none focus:border-blue-500"
+                      placeholder="100.00"
+                    />
+                  </div>
+                </div>
+
+                {/* Preset quick buttons */}
+                <div className="grid grid-cols-4 gap-2">
+                  {["50", "100", "250", "500"].map((preset) => (
+                    <button
+                      type="button"
+                      key={preset}
+                      onClick={() => setDepositAmount(preset)}
+                      className={`py-1.5 rounded-lg border text-xs font-mono font-semibold transition-all ${
+                        depositAmount === preset
+                          ? "bg-blue-600/30 border-blue-500 text-blue-300"
+                          : "border-slate-800 bg-slate-950/60 text-slate-400 hover:text-white hover:border-slate-700"
+                      }`}
+                    >
+                      +${preset}
+                    </button>
+                  ))}
+                </div>
+
+                {depositSuccess && (
+                  <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-medium flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>{depositSuccess}</span>
+                  </div>
+                )}
+
+                <div className="pt-2 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setDepositModalOpen(false)}
+                    className="px-4 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={depositing || !depositAmount || parseFloat(depositAmount) <= 0}
+                    className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-600/30 flex items-center gap-2 disabled:opacity-50 transition-all"
+                  >
+                    {depositing ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Posting Ledger Entry...</span>
+                      </>
+                    ) : (
+                      <>
+                        <PlusCircle className="w-4 h-4" />
+                        <span>Confirm Deposit</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
