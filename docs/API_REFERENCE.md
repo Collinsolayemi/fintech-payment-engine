@@ -725,7 +725,103 @@ Adjudicates an application. Approving the request immediately promotes the user 
 
 ---
 
-## 8. Standard Error Format (RFC 7807 Problem Details)
+## 8. Transaction History & Ledger Statement Endpoints
+
+### Direct Wallet Deposit / Top-up
+`POST /api/v1/transactions/deposit`
+
+Credits user liability account and debits the system clearing account (`SYS-1002-<CURRENCY>`), maintaining strict double-entry balance. Supports idempotency via `Idempotency-Key` header.
+
+#### Headers:
+- `Authorization: Bearer <JWT_TOKEN>`
+- `Idempotency-Key: <UUIDv4>`
+- `Content-Type: application/json`
+
+#### Request:
+```json
+{
+  "accountId": "a3b9f42b-5861-4685-b9f4-2c6d48259b12",
+  "amount": 250.00,
+  "currency": "USD",
+  "description": "Direct wallet top-up"
+}
+```
+
+#### Response: `201 Created`
+```json
+{
+  "id": "e8e50bc9-3d19-4cb5-b5f7-f1396b797825",
+  "reference": "DEP-20261104-582914",
+  "accountId": "a3b9f42b-5861-4685-b9f4-2c6d48259b12",
+  "accountNumber": "USD-11223344",
+  "type": "DEPOSIT",
+  "amount": 250.00,
+  "currency": "USD",
+  "description": "Direct wallet top-up",
+  "status": "COMPLETED",
+  "createdAt": "2026-11-04T08:30:00Z"
+}
+```
+
+---
+
+### Get Authenticated User Transactions
+`GET /api/v1/transactions/me`
+
+Returns user-scoped transaction summaries with signed amounts (credits positive, debits negative).
+
+#### Headers:
+- `Authorization: Bearer <JWT_TOKEN>`
+
+#### Response: `200 OK`
+```json
+[
+  {
+    "id": "e8e50bc9-3d19-4cb5-b5f7-f1396b797825",
+    "reference": "DEP-20261104-582914",
+    "accountId": "a3b9f42b-5861-4685-b9f4-2c6d48259b12",
+    "accountNumber": "USD-11223344",
+    "type": "CREDIT",
+    "amount": 250.00,
+    "currency": "USD",
+    "description": "Direct wallet top-up",
+    "status": "COMPLETED",
+    "createdAt": "2026-11-04T08:30:00Z"
+  }
+]
+```
+
+---
+
+### Get Account Transactions
+`GET /api/v1/transactions/account/{accountId}`
+
+Returns ledger postings scoped to a specific wallet or clearing account.
+
+---
+
+### Get Transaction by Reference
+`GET /api/v1/transactions/{reference}`
+
+Retrieves transaction status and metadata by reference code (e.g. `DEP-...`, `TXN-...`, `PO-...`).
+
+---
+
+### Export CSV Statement
+`GET /api/v1/transactions/account/{accountId}/statement?startDate=2026-01-01T00:00:00Z&endDate=2026-12-31T23:59:59Z`
+
+Streams an audit-grade RFC 4180 CSV export with transaction date, reference, entry type, debit/credit amount, balance, and description.
+
+#### Headers:
+- `Authorization: Bearer <JWT_TOKEN>`
+
+#### Response: `200 OK`
+- `Content-Type: text/csv`
+- `Content-Disposition: attachment; filename="statement-{accountId}.csv"`
+
+---
+
+## 9. Standard Error Format (RFC 7807 Problem Details)
 
 All error responses return a standard structured payload:
 
