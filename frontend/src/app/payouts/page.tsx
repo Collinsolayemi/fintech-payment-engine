@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { BeneficiaryPicker } from "@/components/BeneficiaryPicker";
 import { Navbar } from "@/components/Navbar";
 import { api, generateUUID } from "@/lib/api";
 import { AccountBalance, PayoutResponse } from "@/types";
@@ -193,6 +194,10 @@ export default function PayoutsPage() {
                   ))}
                 </select>
               </div>
+
+              <BeneficiaryPicker type="BANK" currency={activeAccount?.currency || "USD"}
+                destination={{ bankCode, accountNumber, accountName }}
+                onSelect={b => { setBankCode(b.bankCode || ""); setAccountNumber(b.accountNumber || ""); setAccountName(b.accountName); }} />
 
               {/* Destination Bank Grid */}
               <div>

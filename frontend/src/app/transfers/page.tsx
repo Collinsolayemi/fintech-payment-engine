@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { BeneficiaryPicker } from "@/components/BeneficiaryPicker";
 import { Navbar } from "@/components/Navbar";
 import { api, generateUUID } from "@/lib/api";
 import { AccountBalance, TransferResponse } from "@/types";
@@ -241,6 +242,10 @@ export default function TransfersPage() {
                 </div>
               </div>
             </div>
+
+            <BeneficiaryPicker type="WALLET" currency={activeAccount?.currency || "USD"}
+              destination={{ recipientAccountId }}
+              onSelect={b => setRecipientAccountId(b.recipientAccountId || "")} />
 
             {/* Recipient Account Input */}
             <div>
