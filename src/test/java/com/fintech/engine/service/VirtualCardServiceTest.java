@@ -1,7 +1,6 @@
 package com.fintech.engine.service;
 
 import com.fintech.engine.dto.*;
-import com.fintech.engine.exception.*;
 import com.fintech.engine.model.entity.Account;
 import com.fintech.engine.model.entity.User;
 import com.fintech.engine.model.entity.VirtualCard;
@@ -21,7 +20,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
