@@ -1055,3 +1055,28 @@ All error responses return a standard structured payload:
 | `409 Conflict`    | `IDEMPOTENCY_IN_FLIGHT`| Another request with this idempotency key is currently processing |
 | `422 Unprocessable`| `ACCOUNT_SUSPENDED` | Account is frozen by risk/compliance check |
 
+
+## Saved Beneficiaries
+
+All endpoints require a bearer token. Ownership comes from the authenticated user; a user ID is never accepted from the client.
+
+| Method | Endpoint | Result |
+| --- | --- | --- |
+| GET | `/api/v1/beneficiaries` | List your saved recipients, newest first |
+| POST | `/api/v1/beneficiaries` | Save a recipient (201) |
+| PATCH | `/api/v1/beneficiaries/{id}` | Rename with `{"nickname":"Rent"}` |
+| DELETE | `/api/v1/beneficiaries/{id}` | Remove a saved recipient (204) |
+
+Wallet example:
+```json
+{"type":"WALLET","nickname":"Alex","recipientAccountId":"550e8400-e29b-41d4-a716-446655440000","currency":"USD"}
+```
+
+Bank example:
+```json
+{"type":"BANK","nickname":"Rent","bankCode":"021000021","accountNumber":"0012345678","accountName":"Alex Morgan","currency":"USD"}
+```
+
+Wallet recipients must be active customer liability accounts, owned by another customer, in the specified currency. Bank details are format validated; saving a beneficiary does not verify ownership of the external bank account. Currency and bank code are normalized to uppercase and surrounding whitespace is removed. Account numbers retain leading zeros. Each owner may save a wallet once, or a bank destination once per currency. Duplicate saves return 409, invalid fields return 400, and missing or other users' beneficiary IDs return 404.
+
+Transfer and payout forms include saved recipient selection plus save, rename, and remove controls. Selecting a recipient fills the existing destination fields. Payments continue through the existing transfer/payout endpoints and retain their balance, KYC, ownership and idempotency checks. Removing a saved recipient does not cancel payments or clear an entered destination.
