@@ -22,7 +22,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -113,7 +112,17 @@ class VirtualAccountServiceTest {
         when(virtualAccountRepository.existsByUserIdAndCurrency(testUser.getId(), "GBP")).thenReturn(false);
         when(accountRepository.findByUserId(testUser.getId())).thenReturn(List.of(usdWallet));
         when(accountService.createCurrencyWallet(eq("alex@example.com"), any(CreateCurrencyWalletRequest.class)))
-                .thenReturn(new AccountBalanceResponse(gbpWallet.getId(), gbpWallet.getAccountNumber(), "Alex's GBP Wallet", AccountType.LIABILITY, "GBP", BigDecimal.ZERO, OffsetDateTime.now()));
+                .thenReturn(new AccountBalanceResponse(
+                        gbpWallet.getId(),
+                        gbpWallet.getAccountNumber(),
+                        "Alex's GBP Wallet",
+                        AccountType.LIABILITY,
+                        "GBP",
+                        AccountStatus.ACTIVE,
+                        BigDecimal.ZERO,
+                        BigDecimal.ZERO,
+                        BigDecimal.ZERO
+                ));
         when(accountRepository.findById(gbpWallet.getId())).thenReturn(Optional.of(gbpWallet));
         when(virtualAccountRepository.existsByAccountNumber(any())).thenReturn(false);
         when(virtualAccountRepository.saveAndFlush(any(VirtualAccount.class))).thenAnswer(inv -> {
@@ -184,8 +193,17 @@ class VirtualAccountServiceTest {
         when(virtualAccountRepository.findById(vaId)).thenReturn(Optional.of(va));
         when(accountRepository.findByAccountNumber("SYS-1002-USD")).thenReturn(Optional.of(clearing));
         when(ledgerService.getAccountBalance(usdWallet.getId())).thenReturn(
-                new AccountBalanceResponse(usdWallet.getId(), usdWallet.getAccountNumber(), usdWallet.getAccountName(),
-                        AccountType.LIABILITY, "USD", new BigDecimal("500.00"), OffsetDateTime.now())
+                new AccountBalanceResponse(
+                        usdWallet.getId(),
+                        usdWallet.getAccountNumber(),
+                        usdWallet.getAccountName(),
+                        AccountType.LIABILITY,
+                        "USD",
+                        AccountStatus.ACTIVE,
+                        new BigDecimal("500.00"),
+                        BigDecimal.ZERO,
+                        new BigDecimal("500.00")
+                )
         );
 
         VirtualAccountDepositResponse response = virtualAccountService.simulateInboundDeposit(
