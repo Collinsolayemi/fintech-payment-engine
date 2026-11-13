@@ -193,3 +193,34 @@ export interface CardDetails {
   cardholderName: string;
 }
 
+export interface VirtualAccount {
+  id: string;
+  accountId: string;
+  walletAccountNumber: string;
+  currency: string;
+  accountNumber: string;
+  accountName: string;
+  bankName: string;
+  routingNumber: string | null;
+  sortCode: string | null;
+  iban: string | null;
+  bicSwift: string | null;
+  status: "ACTIVE" | "SUSPENDED" | "CLOSED";
+  provider: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VirtualAccountDepositResult {
+  transactionReference: string;
+  virtualAccountId: string;
+  walletAccountId: string;
+  virtualAccountNumber: string;
+  currency: string;
+  amount: number;
+  newWalletBalance: number;
+  senderName: string;
+  narration: string;
+  creditedAt: string;
+}
+
