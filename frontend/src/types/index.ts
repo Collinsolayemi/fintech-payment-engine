@@ -224,3 +224,25 @@ export interface VirtualAccountDepositResult {
   creditedAt: string;
 }
 
+export interface RecurringTransfer {
+  id: string;
+  senderAccountId: string;
+  senderAccountNumber: string;
+  recipientAccountId: string;
+  recipientAccountNumber: string;
+  recipientAccountName: string;
+  amount: number;
+  currency: string;
+  description: string;
+  frequency: "DAILY" | "WEEKLY" | "BIWEEKLY" | "MONTHLY";
+  status: "ACTIVE" | "PAUSED" | "COMPLETED" | "CANCELLED";
+  nextRunAt: string;
+  endDate: string | null;
+  lastRunAt: string | null;
+  lastTransactionReference: string | null;
+  lastFailureReason: string | null;
+  executionCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
