@@ -246,3 +246,23 @@ export interface RecurringTransfer {
   updatedAt: string;
 }
 
+export interface PaymentRequest {
+  id: string;
+  requestCode: string;
+  requesterUserId: string;
+  requesterName: string;
+  requesterAccountId: string;
+  requesterAccountNumber: string;
+  payerUserId: string | null;
+  payerEmail: string | null;
+  amount: number;
+  currency: string;
+  description: string;
+  status: "PENDING" | "PAID" | "DECLINED" | "CANCELLED" | "EXPIRED";
+  transactionReference: string | null;
+  expiresAt: string | null;
+  paidAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+

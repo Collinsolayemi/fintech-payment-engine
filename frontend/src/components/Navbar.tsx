@@ -17,7 +17,8 @@ import {
   CreditCard,
   Globe2,
   Building2,
-  CalendarClock
+  CalendarClock,
+  Receipt
 } from "lucide-react";
 import { useState } from "react";
 
@@ -35,6 +36,7 @@ export function Navbar() {
     { href: "/virtual-accounts", label: "Virtual Accounts", icon: Building2 },
     { href: "/transfers", label: "P2P Transfers", icon: ArrowLeftRight },
     { href: "/recurring", label: "Standing Orders", icon: CalendarClock },
+    { href: "/requests", label: "Requests", icon: Receipt },
     { href: "/exchange", label: "FX Swap", icon: Globe2 },
     { href: "/cards", label: "Cards", icon: CreditCard },
     { href: "/payouts", label: "Bank Payouts", icon: Landmark },
